@@ -1,7 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 val ktorVersion = "2.3.10"
-val logbackVersion = "1.4.5"
+val logbackVersion = "1.4.12"
 val logstashEncoderVersion = "7.2"
 val junitJupiterVersion = "5.10.2"
 val bigQueryClientVersion = "2.20.1"
