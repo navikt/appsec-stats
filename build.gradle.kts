@@ -1,16 +1,16 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 val ktorVersion = "2.3.10"
-val logbackVersion = "1.4.5"
-val logstashEncoderVersion = "7.2"
+val logbackVersion = "1.5.6"
+val logstashEncoderVersion = "7.4"
 val junitJupiterVersion = "5.10.2"
-val bigQueryClientVersion = "2.20.1"
+val bigQueryClientVersion = "2.39.1"
 
 val mainClassName = "no.nav.security.MainKt"
 
 plugins {
-   kotlin("jvm") version "1.9.23"
-   kotlin("plugin.serialization") version "1.8.0"
+   kotlin("jvm") version "1.9.24"
+   kotlin("plugin.serialization") version "1.9.24"
    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
