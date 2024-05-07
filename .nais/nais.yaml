@@ -1,0 +1,17 @@
+apiVersion: nais.io/v1
+kind: Naisjob
+metadata:
+  labels:
+    team: appsec
+  name:  appsec-stats
+  namespace: appsec
+spec:
+  image: {{ image }}
+  schedule: {{ schedule }}
+  ttlSecondsAfterFinished: 300
+  envFrom:
+    - secret: appsec-stats-config
+  gcp:
+    bigQueryDatasets:
+      - name: appsec_stats
+        permission: READWRITE
