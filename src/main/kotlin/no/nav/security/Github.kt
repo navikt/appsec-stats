@@ -77,7 +77,7 @@ class GitHub(private val http: HttpClient, private val authToken: String) {
         fun fetchRepositoryReqBody(after: String?) = """
              query {
               organization(login: "navikt") {
-                repositories(first: 100, after: $after) {
+                repositories(first: 100, isArchived: false, after: $after) {
                   nodes {
                     name
                     pushedAt
