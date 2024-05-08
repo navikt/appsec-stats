@@ -21,17 +21,15 @@ class BigQuery(projectID: String) {
         .service
 
     private val datasetName = "appsec_stats"
-    private val tableName = "issues_by_project"
+    private val tableName = "github_security_stats"
     private val schema =
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
-            Field.of("org", StandardSQLTypeName.STRING),
-            Field.of("project", StandardSQLTypeName.STRING),
-            Field.of("type", StandardSQLTypeName.STRING),
-            Field.of("issues_critical", StandardSQLTypeName.INT64),
-            Field.of("issues_high", StandardSQLTypeName.INT64),
-            Field.of("issues_medium", StandardSQLTypeName.INT64),
-            Field.of("issues_low", StandardSQLTypeName.INT64)
+            Field.of("teamName", StandardSQLTypeName.STRING),
+            Field.of("lastPush", StandardSQLTypeName.DATE),
+            Field.of("repositoryName", StandardSQLTypeName.STRING),
+            Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
+            Field.of("vulnerabilityCount", StandardSQLTypeName.INT64)
         )
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
@@ -40,13 +38,11 @@ class BigQuery(projectID: String) {
         val rows = records.map {
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
-                "org" to it.org,
-                "project" to it.project,
-                "type" to it.type,
-                "issues_critical" to it.critical,
-                "issues_high" to it.high,
-                "issues_medium" to it.medium,
-                "issues_low" to it.low,
+                "teamName" to it.teamName,
+                "lastPush" to it.lastPush,
+                "repositoryName" to it.repositoryName,
+                "vulnerabilityAlertsEnabled" to it,
+                "vulnerabilityCount" to it
             ))
         }
 
@@ -76,11 +72,9 @@ class BigQuery(projectID: String) {
 }
 
 class IssueCountRecord(
-    val org: String,
-    val project: String,
-    val type: String,
-    val critical: Int,
-    val high: Int,
-    val medium: Int,
-    val low: Int,
+    val teamName: String,
+    val lastPush: String,
+    val repositoryName: String,
+    val vulnerabilityAlertsEnabled: Boolean,
+    val vulnerabilityCount: Int
 )
