@@ -174,13 +174,13 @@ class GitHub(
 
         @Serializable
         data class VulnerabilityAlertNode(
-            val nodes: List<VulnerabilityAlertEntry>,
+            val nodes: List<VulnerabilityAlertEntry>? = emptyList(),
             val pageInfo: PageInfo
         ) {
             @Serializable
             data class VulnerabilityAlertEntry(
                 val createdAt: String,
-                val dependencyScope: String,
+                val dependencyScope: String?,
                 val securityVulnerability: SecurityVulnerability
             )
 
