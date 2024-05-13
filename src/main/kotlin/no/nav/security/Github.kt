@@ -3,17 +3,10 @@ package no.nav.security
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.http.ContentType.Application.Json
-import io.ktor.http.HttpHeaders.Accept
-import io.ktor.http.HttpHeaders.Authorization
-import io.ktor.http.HttpHeaders.ContentType
-import io.ktor.http.HttpHeaders.UserAgent
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 
 class GitHub(
     private val http: HttpClient,
-    private val authToken: String,
     private val baseUrl: String = "https://api.github.com/graphql"
 ) {
 
@@ -43,10 +36,10 @@ class GitHub(
     }
 
     internal suspend fun fetchTeams(): List<String> {
-        fun fetchTeamsReqBody(after: String?) = """
+        val fetchTeamsReqBody = """
              query {
                 organization(login: "navikt") {
-                    teams(first: 100, after: $after) {
+                    teams(first: 100, after: ${"$"}after) {
                         nodes {
                             name
                         }
@@ -58,16 +51,16 @@ class GitHub(
                     }
                 }
              }
-        """.trimIndent()
+        """.trimIndent().replace("\n", " ")
 
         val teams = mutableListOf<String>()
         var offset: String? = null
 
         do {
-            val reqBody = fetchTeamsReqBody(offset).replace("\n", " ")
-            logger.info("Request body for fetch teams: $reqBody")
+            val reqBodyJson = fetchTeamsReqBody.replace("\n", " ")
+            logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
-                setBody(reqBody)
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset)))
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             teams.plus(response.data.organization.teams?.nodes)
@@ -78,10 +71,10 @@ class GitHub(
     }
 
     internal suspend fun fetchRepositories(): List<Repository> {
-        fun fetchRepositoryReqBody(after: String?) = """
+        val reqBodyJson = """
              query {
               organization(login: "navikt") {
-                repositories(first: 100, isArchived: false, after: $after) {
+                repositories(first: 100, isArchived: false, after:  ${"$"}after) {
                   nodes {
                     name
                     pushedAt
@@ -95,14 +88,14 @@ class GitHub(
                 }
               }
             }
-        """.trimIndent()
+        """.trimIndent().replace("\n", " ")
 
         val repositories = mutableListOf<Repository>()
         var offset: String? = null
 
         do {
             val response = http.post(baseUrl) {
-                setBody(fetchRepositoryReqBody(offset).replace("\n", " "))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset)))
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             response.data.organization.repositories?.nodes?.let { repositories.addAll(it) }
@@ -112,11 +105,11 @@ class GitHub(
     }
 
     internal suspend fun fetchVulnerabilityAlertsForRepo(repoName: String): List<VulnerabilityAlertNode.VulnerabilityAlertEntry> {
-        fun fetchAlertsForTeamquery(repoName: String, after: String?) = """
+        val reqBodyJson = """
             query {
               organization(login: "navikt") {
-                repository(name: "$repoName") {
-                  vulnerabilityAlerts(states: OPEN, first: 100, after: $after) {
+                repository(name: "${"$"}repoName") {
+                  vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
                     nodes {
                       createdAt
                       dependencyScope
@@ -133,14 +126,14 @@ class GitHub(
                 }
               }
             }
-        """.trimIndent()
+        """.trimIndent().replace("\n", " ")
 
         val alerts = mutableListOf<VulnerabilityAlertNode.VulnerabilityAlertEntry>()
         var offset: String? = null
 
         do {
             val response = http.post(baseUrl) {
-                setBody(fetchAlertsForTeamquery(repoName, offset).replace("\n", " "))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "repoName" to repoName)))
             }.body<GraphQlResponse>()
             offset = response.data.organization.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
             response.data.organization.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
@@ -150,6 +143,9 @@ class GitHub(
     }
 
     internal companion object {
+        @Serializable
+        data class RequestBody(val query: String, val variables: Map<String, String?>? = null)
+
         @Serializable
         data class GraphQlResponse(val data: Data)
 
