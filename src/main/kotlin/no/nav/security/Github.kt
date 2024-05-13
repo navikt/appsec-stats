@@ -107,7 +107,7 @@ class GitHub(
         val reqBodyJson = """
             query(${"$"}orgName: String!, ${"$"}repoName: String!, ${"$"}after: String) {
               organization(login: ${"$"}orgName) {
-                repository(name: "${"$"}repoName") {
+                repository(name: ${"$"}repoName) {
                   vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
                     nodes {
                       createdAt
