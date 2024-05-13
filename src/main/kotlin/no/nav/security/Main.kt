@@ -24,7 +24,7 @@ fun main() = runBlocking {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-private fun httpClient() = HttpClient(CIO) {
+internal fun httpClient() = HttpClient(CIO) {
     expectSuccess = true
     install(ContentNegotiation) {
         json(json = Json {

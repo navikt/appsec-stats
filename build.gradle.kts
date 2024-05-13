@@ -1,10 +1,11 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-val ktorVersion = "2.3.10"
+val ktorVersion = "2.3.11"
 val logbackVersion = "1.5.6"
 val logstashEncoderVersion = "7.4"
-val junitJupiterVersion = "5.10.2"
 val bigQueryClientVersion = "2.39.1"
+
+val junitJupiterVersion = "5.10.2"
 
 val mainClassName = "no.nav.security.MainKt"
 
