@@ -39,7 +39,7 @@ class GitHub(
 
     internal suspend fun fetchTeams(): List<String> {
         val fetchTeamsReqBody = """
-             query {
+             query(${"$"}orgName: OrgName!, ${"$"}after: After) {
                 organization(login: ${"$"}orgName) {
                     teams(first: 100, after: ${"$"}after) {
                         nodes {
@@ -76,7 +76,7 @@ class GitHub(
 
     internal suspend fun fetchRepositories(): List<Repository> {
         val reqBodyJson = """
-             query {
+             query(${"$"}orgName: OrgName!, ${"$"}after: After) {
               organization(login: ${"$"}orgName) {
                 repositories(first: 100, isArchived: false, after:  ${"$"}after) {
                   nodes {
@@ -111,7 +111,7 @@ class GitHub(
 
     internal suspend fun fetchVulnerabilityAlertsForRepo(repoName: String): List<VulnerabilityAlertNode.VulnerabilityAlertEntry> {
         val reqBodyJson = """
-            query {
+            query(${"$"}orgName: OrgName!, ${"$"}repoName: RepoName!, ${"$"}after: After) {
               organization(login: ${"$"}orgName) {
                 repository(name: "${"$"}repoName") {
                   vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
