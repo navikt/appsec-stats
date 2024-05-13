@@ -57,10 +57,10 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val reqBodyJson = fetchTeamsReqBody.replace("\n", " ")
+            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("after" to offset))
             logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset)))
+                setBody(reqBodyJson)
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             teams.plus(response.data.organization.teams?.nodes)
