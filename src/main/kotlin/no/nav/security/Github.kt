@@ -15,6 +15,7 @@ class GitHub(
     suspend fun fetchStatsForBigQuery(): List<IssueCountRecord> {
         val records = mutableListOf<IssueCountRecord>()
         val teams = fetchTeams()
+        logger.info("Fetched ${teams.size} teams")
         val teamRepos = mutableMapOf<String, List<Repository>>()
         teams.forEach { team ->
             teamRepos[team] = fetchRepositories()
@@ -60,14 +61,11 @@ class GitHub(
 
         do {
             val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("orgName" to "navikt", "after" to offset))
-            logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
             }.body<GraphQlResponse>()
-            logger.info("Response from fetch teams: ${Json.encodeToString(response)}")
             offset = response.data?.organization?.teams?.pageInfo?.endCursor
-            teams.plus(response.data?.organization?.teams?.nodes)
-            logger.info("Fetched ${teams.size} teams, offset: $offset")
+            teams.plus(response.data?.organization?.teams?.nodes?.map { it.name })
         } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
         return teams
