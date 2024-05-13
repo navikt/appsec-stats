@@ -71,7 +71,8 @@ class GitHub(
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             teams.plus(response.data.organization.teams?.nodes)
-        } while (response.data.organization.teams?.pageInfo?.hasNextPage == true)
+            logger.info("Fetched ${teams.size} teams, offset: $offset")
+        } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
         return teams
     }
@@ -108,7 +109,7 @@ class GitHub(
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             response.data.organization.repositories?.nodes?.let { repositories.addAll(it) }
-        } while (response.data.organization.teams?.pageInfo?.hasNextPage == true)
+        } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
         return repositories
     }
@@ -149,7 +150,7 @@ class GitHub(
             }.body<GraphQlResponse>()
             offset = response.data.organization.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
             response.data.organization.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
-        } while (response.data.organization.repositories?.pageInfo?.hasNextPage == true)
+        } while (false) // response.data.organization.repositories?.pageInfo?.hasNextPage == true
 
         return alerts
     }

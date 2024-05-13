@@ -41,8 +41,8 @@ class BigQuery(projectID: String) {
                 "teamName" to it.teamName,
                 "lastPush" to it.lastPush,
                 "repositoryName" to it.repositoryName,
-                "vulnerabilityAlertsEnabled" to it,
-                "vulnerabilityCount" to it
+                "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
+                "vulnerabilityCount" to it.vulnerabilityCount
             ))
         }
 
