@@ -187,7 +187,7 @@ class GitHub(
         }
 
         @Serializable
-        data class PageInfo(val endCursor: String, val startCursor: String, val hasNextPage: Boolean)
+        data class PageInfo(val endCursor: String?, val startCursor: String?, val hasNextPage: Boolean? = false)
 
         @Serializable
         data class SecurityVulnerability(val severity: String)
