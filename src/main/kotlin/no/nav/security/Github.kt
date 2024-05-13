@@ -147,7 +147,10 @@ class GitHub(
         data class RequestBody(val query: String, val variables: Map<String, String?>? = null)
 
         @Serializable
-        data class GraphQlResponse(val data: Data)
+        data class GraphQlResponse(val data: Data, val error: GraphQlError?)
+
+        @Serializable
+        data class GraphQlError(val type: String, val message: String)
 
         @Serializable
         data class Data(val organization: Organization)
