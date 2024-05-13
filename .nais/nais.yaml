@@ -15,3 +15,7 @@ spec:
     bigQueryDatasets:
       - name: appsec_stats
         permission: READWRITE
+  accessPolicy:
+    outbound:
+      external:
+        - host: api.github.com
