@@ -62,8 +62,8 @@ class GitHub(
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
             }.body<GraphQlResponse>()
-            offset = response.data.organization.teams?.pageInfo?.endCursor
-            teams.plus(response.data.organization.teams?.nodes)
+            offset = response.data?.organization?.teams?.pageInfo?.endCursor
+            teams.plus(response.data?.organization?.teams?.nodes)
             logger.info("Fetched ${teams.size} teams, offset: $offset")
         } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
@@ -97,8 +97,8 @@ class GitHub(
             val response = http.post(baseUrl) {
                 setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "orgName" to "navikt")))
             }.body<GraphQlResponse>()
-            offset = response.data.organization.teams?.pageInfo?.endCursor
-            response.data.organization.repositories?.nodes?.let { repositories.addAll(it) }
+            offset = response.data?.organization?.teams?.pageInfo?.endCursor
+            response.data?.organization?.repositories?.nodes?.let { repositories.addAll(it) }
         } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
         return repositories
@@ -135,8 +135,8 @@ class GitHub(
             val response = http.post(baseUrl) {
                 setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "repoName" to repoName, "orgName" to "navikt")))
             }.body<GraphQlResponse>()
-            offset = response.data.organization.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
-            response.data.organization.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
+            offset = response.data?.organization?.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
+            response.data?.organization?.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
         } while (false) // response.data.organization.repositories?.pageInfo?.hasNextPage == true
 
         return alerts
@@ -147,7 +147,7 @@ class GitHub(
         data class RequestBody(val query: String, val variables: Map<String, String?>? = null)
 
         @Serializable
-        data class GraphQlResponse(val data: Data, val error: GraphQlError?)
+        data class GraphQlResponse(val data: Data?, val error: GraphQlError?)
 
         @Serializable
         data class GraphQlError(val type: String, val message: String)
