@@ -4,6 +4,8 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class GitHub(
     private val http: HttpClient,
@@ -62,6 +64,7 @@ class GitHub(
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
             }.body<GraphQlResponse>()
+            logger.info("Response from fetch teams: ${Json.encodeToString(response)}")
             offset = response.data?.organization?.teams?.pageInfo?.endCursor
             teams.plus(response.data?.organization?.teams?.nodes)
             logger.info("Fetched ${teams.size} teams, offset: $offset")
