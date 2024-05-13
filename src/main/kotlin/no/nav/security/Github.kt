@@ -59,7 +59,8 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("after" to offset, "orgName" to "navikt"))
+            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"))
+            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = variables)
             logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
@@ -97,8 +98,9 @@ class GitHub(
         var offset: String? = null
 
         do {
+            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"))
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "orgName" to "navikt")))
+                setBody(RequestBody(query = reqBodyJson, variables = variables))
             }.body<GraphQlResponse>()
             offset = response.data?.organization?.teams?.pageInfo?.endCursor
             response.data?.organization?.repositories?.nodes?.let { repositories.addAll(it) }
@@ -135,8 +137,9 @@ class GitHub(
         var offset: String? = null
 
         do {
+            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"), repoName = Variables.RepoName(repoName))
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "repoName" to repoName, "orgName" to "navikt")))
+                setBody(RequestBody(query = reqBodyJson, variables = variables))
             }.body<GraphQlResponse>()
             offset = response.data?.organization?.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
             response.data?.organization?.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
@@ -147,10 +150,22 @@ class GitHub(
 
     internal companion object {
         @Serializable
-        data class RequestBody(val query: String, val variables: Map<String, String?>? = null)
+        data class RequestBody(val query: String, val variables: Variables? = null)
 
         @Serializable
         data class GraphQlResponse(val data: Data?, val error: GraphQlError?)
+
+        @Serializable
+        data class Variables(val after: After, val orgName: OrgName, val repoName: RepoName? = null) {
+            @Serializable
+            data class After(val after: String?)
+
+            @Serializable
+            data class OrgName(val orgName: String)
+
+            @Serializable
+            data class RepoName(val repoName: String)
+        }
 
         @Serializable
         data class GraphQlError(val type: String, val message: String)
