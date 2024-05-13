@@ -38,7 +38,7 @@ class GitHub(
     internal suspend fun fetchTeams(): List<String> {
         val fetchTeamsReqBody = """
              query {
-                organization(login: "navikt") {
+                organization(login: ${"$"}orgName) {
                     teams(first: 100, after: ${"$"}after) {
                         nodes {
                             name
@@ -57,7 +57,7 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("after" to offset))
+            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("after" to offset, "orgName" to "navikt"))
             logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
@@ -73,7 +73,7 @@ class GitHub(
     internal suspend fun fetchRepositories(): List<Repository> {
         val reqBodyJson = """
              query {
-              organization(login: "navikt") {
+              organization(login: ${"$"}orgName) {
                 repositories(first: 100, isArchived: false, after:  ${"$"}after) {
                   nodes {
                     name
@@ -95,7 +95,7 @@ class GitHub(
 
         do {
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset)))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "orgName" to "navikt")))
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             response.data.organization.repositories?.nodes?.let { repositories.addAll(it) }
@@ -107,7 +107,7 @@ class GitHub(
     internal suspend fun fetchVulnerabilityAlertsForRepo(repoName: String): List<VulnerabilityAlertNode.VulnerabilityAlertEntry> {
         val reqBodyJson = """
             query {
-              organization(login: "navikt") {
+              organization(login: ${"$"}orgName) {
                 repository(name: "${"$"}repoName") {
                   vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
                     nodes {
@@ -133,7 +133,7 @@ class GitHub(
 
         do {
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "repoName" to repoName)))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("after" to offset, "repoName" to repoName, "orgName" to "navikt")))
             }.body<GraphQlResponse>()
             offset = response.data.organization.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
             response.data.organization.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }

@@ -17,7 +17,7 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main() = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val github = GitHub(httpClient(), requiredFromEnv("GITHUB_TOKEN"))
+    val github = GitHub(httpClient())
 
     val githubStats = github.fetchStatsForBigQuery()
     logger.info("Fetched ${githubStats.size} records from GitHub")
