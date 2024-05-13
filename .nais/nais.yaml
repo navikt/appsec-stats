@@ -6,7 +6,7 @@ metadata:
   name:  appsec-stats
   namespace: appsec
 spec:
-  image: {{ image }}
+  image: "{{ image }}"
   schedule: "0 */2 * * *"
   ttlSecondsAfterFinished: 300
   envFrom:
