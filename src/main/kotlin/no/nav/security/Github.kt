@@ -4,8 +4,6 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 class GitHub(
     private val http: HttpClient,
@@ -65,7 +63,7 @@ class GitHub(
                 setBody(reqBodyJson)
             }.body<GraphQlResponse>()
             offset = response.data?.organization?.teams?.pageInfo?.endCursor
-            teams.plus(response.data?.organization?.teams?.nodes?.map { it.name })
+            teams += response.data?.organization?.teams?.nodes?.map { it.name } ?: emptyList()
         } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
 
         return teams
