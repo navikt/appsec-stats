@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.json
@@ -29,6 +30,11 @@ fun main() = runBlocking {
 @OptIn(ExperimentalSerializationApi::class)
 internal fun httpClient() = HttpClient(CIO) {
     expectSuccess = true
+    install(Logging) {
+        logger = logger
+        level = LogLevel.BODY
+        sanitizeHeader { header -> header == HttpHeaders.Authorization }
+    }
     install(ContentNegotiation) {
         json(json = Json {
             explicitNulls = false
