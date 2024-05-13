@@ -39,7 +39,7 @@ class GitHub(
 
     internal suspend fun fetchTeams(): List<String> {
         val fetchTeamsReqBody = """
-             query(${"$"}orgName: OrgName!, ${"$"}after: After) {
+             query(${"$"}orgName: String!, ${"$"}after: String) {
                 organization(login: ${"$"}orgName) {
                     teams(first: 100, after: ${"$"}after) {
                         nodes {
@@ -59,8 +59,7 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"))
-            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = variables)
+            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("orgName" to "navikt", "after" to offset))
             logger.info("Request body for fetch teams: $reqBodyJson")
             val response = http.post(baseUrl) {
                 setBody(reqBodyJson)
@@ -76,7 +75,7 @@ class GitHub(
 
     internal suspend fun fetchRepositories(): List<Repository> {
         val reqBodyJson = """
-             query(${"$"}orgName: OrgName!, ${"$"}after: After) {
+             query(${"$"}orgName: String!, ${"$"}after: String) {
               organization(login: ${"$"}orgName) {
                 repositories(first: 100, isArchived: false, after:  ${"$"}after) {
                   nodes {
@@ -98,9 +97,8 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"))
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = variables))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("orgName" to "navikt", "after" to offset)))
             }.body<GraphQlResponse>()
             offset = response.data?.organization?.teams?.pageInfo?.endCursor
             response.data?.organization?.repositories?.nodes?.let { repositories.addAll(it) }
@@ -111,7 +109,7 @@ class GitHub(
 
     internal suspend fun fetchVulnerabilityAlertsForRepo(repoName: String): List<VulnerabilityAlertNode.VulnerabilityAlertEntry> {
         val reqBodyJson = """
-            query(${"$"}orgName: OrgName!, ${"$"}repoName: RepoName!, ${"$"}after: After) {
+            query(${"$"}orgName: String!, ${"$"}repoName: String!, ${"$"}after: String) {
               organization(login: ${"$"}orgName) {
                 repository(name: "${"$"}repoName") {
                   vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
@@ -137,9 +135,8 @@ class GitHub(
         var offset: String? = null
 
         do {
-            val variables = Variables(after = Variables.After(offset), orgName = Variables.OrgName("navikt"), repoName = Variables.RepoName(repoName))
             val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = variables))
+                setBody(RequestBody(query = reqBodyJson, variables = mapOf("orgName" to "navikt", "repoName" to repoName, "after" to offset)))
             }.body<GraphQlResponse>()
             offset = response.data?.organization?.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
             response.data?.organization?.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
@@ -150,22 +147,10 @@ class GitHub(
 
     internal companion object {
         @Serializable
-        data class RequestBody(val query: String, val variables: Variables? = null)
+        data class RequestBody(val query: String, val variables: Map<String, String?> = emptyMap())
 
         @Serializable
         data class GraphQlResponse(val data: Data?, val error: GraphQlError?)
-
-        @Serializable
-        data class Variables(val after: After, val orgName: OrgName, val repoName: RepoName? = null) {
-            @Serializable
-            data class After(val after: String?)
-
-            @Serializable
-            data class OrgName(val orgName: String)
-
-            @Serializable
-            data class RepoName(val repoName: String)
-        }
 
         @Serializable
         data class GraphQlError(val type: String, val message: String)
