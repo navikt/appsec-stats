@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.ContentType.Application.Json
+import io.ktor.http.HttpHeaders.Accept
 import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.http.HttpHeaders.ContentType
 import io.ktor.http.HttpHeaders.UserAgent
@@ -63,11 +64,10 @@ class GitHub(
         var offset: String? = null
 
         do {
+            val reqBody = fetchTeamsReqBody(offset).replace("\n", " ")
+            logger.info("Request body for fetch teams: $reqBody")
             val response = http.post(baseUrl) {
-                header(Authorization, "Bearer $authToken")
-                header(UserAgent, "NAV IT Appsec-stats")
-                header(ContentType, Json)
-                setBody(fetchTeamsReqBody(offset).replace("\n", " "))
+                setBody(reqBody)
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
             teams.plus(response.data.organization.teams?.nodes)
@@ -102,9 +102,6 @@ class GitHub(
 
         do {
             val response = http.post(baseUrl) {
-                header(Authorization, "Bearer $authToken")
-                header(UserAgent, "NAV IT Appsec-stats")
-                header(ContentType, Json)
                 setBody(fetchRepositoryReqBody(offset).replace("\n", " "))
             }.body<GraphQlResponse>()
             offset = response.data.organization.teams?.pageInfo?.endCursor
@@ -143,9 +140,6 @@ class GitHub(
 
         do {
             val response = http.post(baseUrl) {
-                header(Authorization, "Bearer $authToken")
-                header(UserAgent, "NAV IT Appsec-stats")
-                header(ContentType, Json)
                 setBody(fetchAlertsForTeamquery(repoName, offset).replace("\n", " "))
             }.body<GraphQlResponse>()
             offset = response.data.organization.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
