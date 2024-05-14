@@ -11,6 +11,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 
 
@@ -39,7 +40,7 @@ class BigQuery(projectID: String) {
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "teamName" to it.teamName,
-                "lastPush" to it.lastPush,
+                "lastPush" to LocalDateTime.parse(it.lastPush).toLocalDate(),
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
                 "vulnerabilityCount" to it.vulnerabilityCount
