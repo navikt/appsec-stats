@@ -1,0 +1,38 @@
+query ($orgName: String!) {
+  organization(login: $orgName) {
+    teams(first: 10, after: null) {
+      nodes {
+        name
+        repositories(first: 100, after: null) {
+          nodes {
+            name
+            isArchived
+            pushedAt
+            hasVulnerabilityAlertsEnabled
+            vulnerabilityAlerts(states: OPEN, first: 100, after: null) {
+              nodes {
+                createdAt
+                dependencyScope
+                securityVulnerability {
+                  severity
+                }
+              }
+              pageInfo {
+                endCursor
+                hasNextPage
+              }
+            }
+          }
+          pageInfo {
+            endCursor
+            hasNextPage
+          }
+        }
+      }
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+    }
+  }
+}

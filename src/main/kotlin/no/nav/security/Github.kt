@@ -1,195 +1,50 @@
 package no.nav.security
 
+import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
+import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import kotlinx.serialization.Serializable
+import java.net.URI
 
 class GitHub(
-    private val http: HttpClient,
+    private val httpClient: HttpClient,
     private val baseUrl: String = "https://api.github.com/graphql"
 ) {
 
+    val client = GraphQLKtorClient(
+        url = URI(baseUrl).toURL(),
+        httpClient = httpClient
+    )
+
     suspend fun fetchStatsForBigQuery(): List<IssueCountRecord> {
-        val records = mutableListOf<IssueCountRecord>()
-        val teams = fetchTeams()
-        logger.info("Fetched ${teams.size} teams")
-        val teamRepos = mutableMapOf<String, List<Repository>>()
-        teams.forEach { team ->
-            teamRepos[team] = fetchRepositories()
+        val ghQuery = FetchGithubStatsQuery(variables = FetchGithubStatsQuery.Variables(orgName = "navikt"))
+        val response: GraphQLClientResponse<FetchGithubStatsQuery.Result> = client.execute(ghQuery)
+        response.errors?.let {
+            logger.error("Error fetching data from GitHub: $it")
+            throw RuntimeException("Error fetching data from GitHub: $it")
         }
 
-        teamRepos.forEach { (team, repository) ->
-            repository.forEach { repo ->
-                records.plus(
-                    IssueCountRecord(
-                        teamName = team,
-                        lastPush = repository.last().pushedAt,
-                        repositoryName = repository.last().name,
-                        vulnerabilityAlertsEnabled = repository.last().hasVulnerabilityAlertsEnabled,
-                        vulnerabilityCount = fetchVulnerabilityAlertsForRepo(repo.name).size
-                    )
-                )
+        val records = mutableListOf<IssueCountRecord>()
+
+        response.data?.organization?.teams?.nodes?.map { team ->
+            team?.repositories?.nodes?.map { repo ->
+                repo?.let {
+                    if(!it.isArchived) {
+                        records.add(
+                            IssueCountRecord(
+                                teamName = team.name,
+                                lastPush = repo.pushedAt.toString(),
+                                repositoryName = repo.name,
+                                vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,
+                                vulnerabilityCount = repo.vulnerabilityAlerts?.nodes?.size?: 0
+                            )
+                        )
+                    }
+                }
             }
         }
+
+        logger.info("Fetched ${records.size} records from GitHub")
 
         return records
-    }
-
-    internal suspend fun fetchTeams(): List<String> {
-        val fetchTeamsReqBody = """
-             query(${"$"}orgName: String!, ${"$"}after: String) {
-                organization(login: ${"$"}orgName) {
-                    teams(first: 100, after: ${"$"}after) {
-                        nodes {
-                            name
-                        }
-                        pageInfo {
-                            endCursor
-                            startCursor
-                            hasNextPage
-                        }
-                    }
-                }
-             }
-        """.trimIndent().replace("\n", " ")
-
-        val teams = mutableListOf<String>()
-        var offset: String? = null
-
-        do {
-            val reqBodyJson = RequestBody(query = fetchTeamsReqBody, variables = mapOf("orgName" to "navikt", "after" to offset))
-            val response = http.post(baseUrl) {
-                setBody(reqBodyJson)
-            }.body<GraphQlResponse>()
-            offset = response.data?.organization?.teams?.pageInfo?.endCursor
-            teams += response.data?.organization?.teams?.nodes?.map { it.name } ?: emptyList()
-        } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
-
-        return teams
-    }
-
-    internal suspend fun fetchRepositories(): List<Repository> {
-        val reqBodyJson = """
-             query(${"$"}orgName: String!, ${"$"}after: String) {
-              organization(login: ${"$"}orgName) {
-                repositories(first: 100, isArchived: false, after:  ${"$"}after) {
-                  nodes {
-                    name
-                    pushedAt
-                    hasVulnerabilityAlertsEnabled
-                  }
-                  pageInfo {
-                    endCursor
-                    startCursor
-                    hasNextPage
-                  }
-                }
-              }
-            }
-        """.trimIndent().replace("\n", " ")
-
-        val repositories = mutableListOf<Repository>()
-        var offset: String? = null
-
-        do {
-            val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("orgName" to "navikt", "after" to offset)))
-            }.body<GraphQlResponse>()
-            offset = response.data?.organization?.teams?.pageInfo?.endCursor
-            response.data?.organization?.repositories?.nodes?.let { repositories.addAll(it) }
-        } while (false) // response.data.organization.teams?.pageInfo?.hasNextPage == true
-
-        return repositories
-    }
-
-    internal suspend fun fetchVulnerabilityAlertsForRepo(repoName: String): List<VulnerabilityAlertNode.VulnerabilityAlertEntry> {
-        val reqBodyJson = """
-            query(${"$"}orgName: String!, ${"$"}repoName: String!, ${"$"}after: String) {
-              organization(login: ${"$"}orgName) {
-                repository(name: ${"$"}repoName) {
-                  vulnerabilityAlerts(states: OPEN, first: 100, after: ${"$"}after) {
-                    nodes {
-                      createdAt
-                      dependencyScope
-                      securityVulnerability {
-                        severity
-                      }
-                    }
-                    pageInfo {
-                      endCursor
-                      startCursor
-                      hasNextPage
-                    }
-                  }
-                }
-              }
-            }
-        """.trimIndent().replace("\n", " ")
-
-        val alerts = mutableListOf<VulnerabilityAlertNode.VulnerabilityAlertEntry>()
-        var offset: String? = null
-
-        do {
-            val response = http.post(baseUrl) {
-                setBody(RequestBody(query = reqBodyJson, variables = mapOf("orgName" to "navikt", "repoName" to repoName, "after" to offset)))
-            }.body<GraphQlResponse>()
-            offset = response.data?.organization?.repository?.vulnerabilityAlerts?.pageInfo?.endCursor
-            response.data?.organization?.repository?.vulnerabilityAlerts?.nodes?.let { alerts.addAll(it) }
-        } while (false) // response.data.organization.repositories?.pageInfo?.hasNextPage == true
-
-        return alerts
-    }
-
-    internal companion object {
-        @Serializable
-        data class RequestBody(val query: String, val variables: Map<String, String?> = emptyMap())
-
-        @Serializable
-        data class GraphQlResponse(val data: Data?, val error: GraphQlError?)
-
-        @Serializable
-        data class GraphQlError(val type: String, val message: String)
-
-        @Serializable
-        data class Data(val organization: Organization)
-
-        @Serializable
-        data class Organization(val repositories: RepositoryNodes?, val teams: Teams?, val repository: VulnerabilityAlert?)
-
-        @Serializable
-        data class RepositoryNodes(val nodes: List<Repository>, val pageInfo: PageInfo)
-
-        @Serializable
-        data class Repository(val name: String, val pushedAt: String, val hasVulnerabilityAlertsEnabled: Boolean)
-
-        @Serializable
-        data class Teams(val nodes: List<Team>, val pageInfo: PageInfo)
-
-        @Serializable
-        data class Team(val name: String)
-
-        @Serializable
-        data class VulnerabilityAlert(val vulnerabilityAlerts: VulnerabilityAlertNode)
-
-        @Serializable
-        data class VulnerabilityAlertNode(
-            val nodes: List<VulnerabilityAlertEntry>? = emptyList(),
-            val pageInfo: PageInfo
-        ) {
-            @Serializable
-            data class VulnerabilityAlertEntry(
-                val createdAt: String,
-                val dependencyScope: String?,
-                val securityVulnerability: SecurityVulnerability
-            )
-
-        }
-
-        @Serializable
-        data class PageInfo(val endCursor: String?, val startCursor: String?, val hasNextPage: Boolean? = false)
-
-        @Serializable
-        data class SecurityVulnerability(val severity: String)
     }
 }

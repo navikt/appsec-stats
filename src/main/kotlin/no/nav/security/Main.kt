@@ -21,7 +21,6 @@ fun main() = runBlocking {
     val github = GitHub(httpClient())
 
     val githubStats = github.fetchStatsForBigQuery()
-    logger.info("Fetched ${githubStats.size} records from GitHub")
 
     val rows = bq.insert(githubStats)
     logger.info("Inserted $rows records into BigQuery")
@@ -32,7 +31,7 @@ internal fun httpClient() = HttpClient(CIO) {
     expectSuccess = true
     install(Logging) {
         logger = logger
-        level = LogLevel.BODY
+        level = LogLevel.HEADERS
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
     }
     install(ContentNegotiation) {
