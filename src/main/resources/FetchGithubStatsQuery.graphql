@@ -1,4 +1,7 @@
 query ($orgName: String!, $teamCursor: String, $repoCursor: String, $vulnCursor: String) {
+  rateLimit {
+    remaining
+  }
   organization(login: $orgName) {
     teams(first: 10, after: $teamCursor) {
       nodes {
