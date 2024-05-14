@@ -30,7 +30,8 @@ class BigQuery(projectID: String) {
             Field.of("lastPush", StandardSQLTypeName.DATE),
             Field.of("repositoryName", StandardSQLTypeName.STRING),
             Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
-            Field.of("vulnerabilityCount", StandardSQLTypeName.INT64)
+            Field.of("vulnerabilityCount", StandardSQLTypeName.INT64),
+            Field.of("isArchived", StandardSQLTypeName.BOOL)
         )
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
@@ -45,7 +46,8 @@ class BigQuery(projectID: String) {
                 "lastPush" to lastPushDate,
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
-                "vulnerabilityCount" to it.vulnerabilityCount
+                "vulnerabilityCount" to it.vulnerabilityCount,
+                "isArchived" to it.isArchived
             ))
         }
 
@@ -79,5 +81,6 @@ class IssueCountRecord(
     val lastPush: String,
     val repositoryName: String,
     val vulnerabilityAlertsEnabled: Boolean,
-    val vulnerabilityCount: Int
+    val vulnerabilityCount: Int,
+    val isArchived: Boolean
 )

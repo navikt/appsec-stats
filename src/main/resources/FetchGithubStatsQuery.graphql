@@ -1,15 +1,15 @@
-query ($orgName: String!) {
+query ($orgName: String!, $teamCursor: String, $repoCursor: String, $vulnCursor: String) {
   organization(login: $orgName) {
-    teams(first: 10, after: null) {
+    teams(first: 10, after: $teamCursor) {
       nodes {
         name
-        repositories(first: 100, after: null) {
+        repositories(first: 100, after: $repoCursor) {
           nodes {
             name
             isArchived
             pushedAt
             hasVulnerabilityAlertsEnabled
-            vulnerabilityAlerts(states: OPEN, first: 100, after: null) {
+            vulnerabilityAlerts(states: OPEN, first: 100, after: $vulnCursor) {
               nodes {
                 createdAt
                 dependencyScope
