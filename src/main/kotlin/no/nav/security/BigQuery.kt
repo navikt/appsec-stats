@@ -37,10 +37,12 @@ class BigQuery(projectID: String) {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
         val rows = records.map {
+            // Github DateTime format: 2024-01-31T12:06:05Z
+            val lastPushDate = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "teamName" to it.teamName,
-                "lastPush" to Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate(),
+                "lastPush" to lastPushDate,
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
                 "vulnerabilityCount" to it.vulnerabilityCount
