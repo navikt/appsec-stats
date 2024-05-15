@@ -19,3 +19,4 @@ spec:
     outbound:
       external:
         - host: api.github.com
+        - host: hooks.slack.com

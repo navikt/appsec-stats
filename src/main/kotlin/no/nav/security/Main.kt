@@ -51,7 +51,9 @@ internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
         logger = logger
         level = LogLevel.HEADERS
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
-        sanitizeHeader { header -> header.contains("hooks.slack.com") }
+        filter { request ->
+            request.url.host.contains("hooks.slack.com")
+        }
     }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)

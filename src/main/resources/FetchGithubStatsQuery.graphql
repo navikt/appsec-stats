@@ -8,7 +8,7 @@ query (
   }
   organization(login: $orgName) {
     teams(
-      first: 10
+      first: 15
       after: $teamsEndCursor
       orderBy: { field: NAME, direction: ASC }
     ) {
