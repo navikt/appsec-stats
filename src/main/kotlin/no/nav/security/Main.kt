@@ -16,24 +16,39 @@ import org.slf4j.LoggerFactory
 
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
-fun main() = runBlocking {
+fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val github = GitHub(httpClient())
+    val github = GitHub(httpClient = httpClient())
+    val slack = Slack(httpClient = httpClient(), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
 
-    val githubStats = github.fetchStatsForBigQuery()
+    try {
+        val githubStats = github.fetchStatsForBigQuery()
+        val rows = bq.insert(githubStats)
+        logger.info("Inserted $rows records into BigQuery")
 
-    logger.info("Fetched ${githubStats.size} records from GitHub")
-    val rows = bq.insert(githubStats)
-    logger.info("Inserted $rows records into BigQuery")
+        slack.send(
+            channel = "appsec-aktivitet",
+            heading = "GitHub Security Stats from appsec-stats job",
+            msg = "Inserted $rows records into BigQuery"
+        )
+    } catch (e: Exception) {
+        logger.error("Error running appsec-stats: $e")
+        slack.send(
+            channel = "appsec-aktivitet",
+            heading = "Error running appsec-stats",
+            msg = e.message ?: "No error message"
+        )
+    }
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-internal fun httpClient() = HttpClient(CIO) {
+internal fun httpClient(withGithubToken: Boolean? = false) = HttpClient(CIO) {
     expectSuccess = true
     install(Logging) {
         logger = logger
         level = LogLevel.HEADERS
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
+        sanitizeHeader { header -> header.contains("hooks.slack.com") }
     }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)
@@ -49,7 +64,8 @@ internal fun httpClient() = HttpClient(CIO) {
         headers {
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.ContentType, ContentType.Application.Json)
-            header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
+            if(withGithubToken == true) header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
+
         }
     }
 }
