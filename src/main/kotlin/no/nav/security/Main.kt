@@ -18,8 +18,11 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val github = GitHub(httpClient = httpClient())
-    val slack = Slack(httpClient = httpClient(), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
+    val github = GitHub(httpClient = httpClient(withGithubToken = true))
+    val slack = Slack(
+        httpClient = httpClient(withGithubToken = false),
+        slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK")
+    )
 
     try {
         val githubStats = github.fetchStatsForBigQuery()
@@ -42,7 +45,7 @@ fun main(): Unit = runBlocking {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-internal fun httpClient(withGithubToken: Boolean? = false) = HttpClient(CIO) {
+internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
     expectSuccess = true
     install(Logging) {
         logger = logger
@@ -64,7 +67,7 @@ internal fun httpClient(withGithubToken: Boolean? = false) = HttpClient(CIO) {
         headers {
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.ContentType, ContentType.Application.Json)
-            if(withGithubToken == true) header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
+            if (withGithubToken) header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
 
         }
     }

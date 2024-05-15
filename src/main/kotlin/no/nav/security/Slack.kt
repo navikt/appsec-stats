@@ -3,10 +3,8 @@ package no.nav.security
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 class Slack(
     private val httpClient: HttpClient,
@@ -23,7 +21,6 @@ class Slack(
         )
 
         return httpClient.post(slackWebhookUrl) {
-            header(HttpHeaders.ContentType, Json)
             setBody(toSend)
         }.body()
     }
