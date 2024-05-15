@@ -1,40 +1,47 @@
-query ($orgName: String!, $teamCursor: String, $repoCursor: String, $vulnCursor: String) {
+query (
+  $orgName: String!
+  $teamsEndCursor: String
+  $repoEndCursor: String
+) {
   rateLimit {
     remaining
   }
   organization(login: $orgName) {
-    teams(first: 10, after: $teamCursor) {
+    teams(
+      first: 10
+      after: $teamsEndCursor
+      orderBy: { field: NAME, direction: ASC }
+    ) {
+      totalCount
       nodes {
+        id
         name
-        repositories(first: 100, after: $repoCursor) {
+        slug
+        repositories(
+          first: 100
+          after: $repoEndCursor
+          orderBy: { field: CREATED_AT, direction: ASC }
+        ) {
+          totalCount
           nodes {
+            id
             name
             isArchived
             pushedAt
             hasVulnerabilityAlertsEnabled
-            vulnerabilityAlerts(states: OPEN, first: 100, after: $vulnCursor) {
-              nodes {
-                createdAt
-                dependencyScope
-                securityVulnerability {
-                  severity
-                }
-              }
-              pageInfo {
-                endCursor
-                hasNextPage
-              }
+            vulnerabilityAlerts(states: OPEN) {
+              totalCount
             }
           }
           pageInfo {
-            endCursor
             hasNextPage
+            endCursor
           }
         }
       }
       pageInfo {
-        endCursor
         hasNextPage
+        endCursor
       }
     }
   }

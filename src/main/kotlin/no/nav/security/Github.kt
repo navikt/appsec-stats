@@ -18,19 +18,17 @@ class GitHub(
 
     suspend fun fetchStatsForBigQuery(): List<IssueCountRecord> {
         fetchDataFromGraphql()
-        logger.info("Built ${records.size} records from GitHub response")
-        return records
+        return records.distinctBy { it.repositoryName }
     }
 
     private tailrec suspend fun fetchDataFromGraphql(
-        teamCursor: String? = null, repoCursor: String? = null, vulnCursor: String? = null
+        teamCursor: String? = null, repoCursor: String? = null
     ) {
         val ghQuery = FetchGithubStatsQuery(
             variables = FetchGithubStatsQuery.Variables(
                 orgName = "navikt",
-                teamCursor = teamCursor,
-                repoCursor = repoCursor,
-                vulnCursor = vulnCursor
+                teamsEndCursor = teamCursor,
+                repoEndCursor = repoCursor
             )
         )
         val response: GraphQLClientResponse<FetchGithubStatsQuery.Result> = client.execute(ghQuery)
@@ -49,24 +47,13 @@ class GitHub(
                 repo?.let {
                     records.add(
                         IssueCountRecord(
-                            teamName = team.name,
+                            teamName = team.slug,
                             lastPush = repo.pushedAt.toString(),
                             repositoryName = repo.name,
                             vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,
-                            vulnerabilityCount = repo.vulnerabilityAlerts?.nodes?.size ?: 0,
+                            vulnerabilityCount = repo.vulnerabilityAlerts?.totalCount ?: 0,
                             isArchived = repo.isArchived
                         )
-                    )
-                }
-
-                val vulnPageInfo = repo?.vulnerabilityAlerts?.pageInfo
-                val nextVulnPage = vulnPageInfo?.endCursor.takeIf { vulnPageInfo?.hasNextPage ?: false }
-
-                if (nextVulnPage != null) {
-                    return fetchDataFromGraphql(
-                        teamCursor = teamCursor,
-                        repoCursor = repoCursor,
-                        vulnCursor = nextVulnPage
                     )
                 }
             }
