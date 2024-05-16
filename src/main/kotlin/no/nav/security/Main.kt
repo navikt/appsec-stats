@@ -55,6 +55,10 @@ internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
         logger = logger
         level = LogLevel.HEADERS
         sanitizeHeader { header -> header == HttpHeaders.Authorization }
+        filter {
+            // Log everything except requests containing slack webhook
+            !it.host.contains("hooks.slack.com")
+        }
     }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)
