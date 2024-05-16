@@ -18,7 +18,7 @@ class GitHub(
 
     suspend fun fetchStatsForBigQuery(): List<IssueCountRecord> {
         fetchDataFromGraphql()
-        return records.distinctBy { it.repositoryName }
+        return records
     }
 
     private tailrec suspend fun fetchDataFromGraphql(
