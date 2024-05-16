@@ -9,6 +9,13 @@ spec:
   image: "{{ image }}"
   schedule: "5 22 * * *"
   ttlSecondsAfterFinished: 300
+  resources:
+    limits:
+      cpu: "300m"
+      memory: "512"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
   envFrom:
     - secret: appsec-stats-config
   gcp:

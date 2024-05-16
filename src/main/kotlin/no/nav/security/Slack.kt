@@ -5,7 +5,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import io.ktor.http.ContentType.Application.Json
 
 class Slack(
     private val httpClient: HttpClient,
