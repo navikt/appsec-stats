@@ -27,12 +27,16 @@ fun main(): Unit = runBlocking {
     try {
         val githubStats = github.fetchStatsForBigQuery()
         val rows = bq.insert(githubStats)
-        logger.info("Inserted $rows records into BigQuery")
+        if(rows.isSuccess) {
+            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
+        } else {
+            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
+        }
 
         slack.send(
             channel = "appsec-aktivitet",
             heading = "GitHub Security Stats from appsec-stats job",
-            msg = "Inserted $rows records into BigQuery"
+            msg = "Inserted ${rows.getOrNull()} records into BigQuery"
         )
     } catch (e: Exception) {
         logger.error("Error running appsec-stats: $e")
@@ -65,14 +69,16 @@ internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
             ignoreUnknownKeys = true
         })
     }
-    defaultRequest {
-        headers {
-            header(HttpHeaders.Accept, ContentType.Application.Json)
-            header(HttpHeaders.ContentType, ContentType.Application.Json)
-            if (withGithubToken) header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
-
+    if (withGithubToken) {
+        defaultRequest {
+            headers {
+                header(HttpHeaders.Accept, ContentType.Application.Json)
+                header(HttpHeaders.ContentType, ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
+            }
         }
     }
+
 }
 
 private fun requiredFromEnv(name: String) =

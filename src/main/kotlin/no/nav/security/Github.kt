@@ -6,8 +6,8 @@ import io.ktor.client.*
 import java.net.URI
 
 class GitHub(
-    private val httpClient: HttpClient,
-    private val baseUrl: String = "https://api.github.com/graphql"
+    httpClient: HttpClient,
+    baseUrl: String = "https://api.github.com/graphql"
 ) {
 
     private val records = mutableListOf<IssueCountRecord>()
