@@ -47,7 +47,8 @@ class GitHub(
                 repo?.let {
                     records.add(
                         IssueCountRecord(
-                            teamName = team.slug,
+                            teamName = team.name,
+                            naisTeam = team.slug,
                             lastPush = repo.pushedAt.toString(),
                             repositoryName = repo.name,
                             vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,

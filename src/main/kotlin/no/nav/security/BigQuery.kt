@@ -27,6 +27,7 @@ class BigQuery(projectID: String) {
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
             Field.of("teamName", StandardSQLTypeName.STRING),
+            Field.of("naisteam", StandardSQLTypeName.STRING),
             Field.of("lastPush", StandardSQLTypeName.DATE),
             Field.of("repositoryName", StandardSQLTypeName.STRING),
             Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
@@ -43,6 +44,7 @@ class BigQuery(projectID: String) {
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "teamName" to it.teamName,
+                "naisTeam" to it.naisTeam,
                 "lastPush" to lastPushDate,
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
@@ -78,6 +80,7 @@ class BigQuery(projectID: String) {
 
 class IssueCountRecord(
     val teamName: String,
+    val naisTeam: String,
     val lastPush: String,
     val repositoryName: String,
     val vulnerabilityAlertsEnabled: Boolean,
