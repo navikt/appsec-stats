@@ -7,7 +7,7 @@ query (
     }
     organization(login: $orgName) {
         repositories(
-            first: 100
+            first: 10
             after: $repoEndCursor
             orderBy: { field: CREATED_AT, direction: ASC }
         ) {
@@ -20,15 +20,6 @@ query (
                 hasVulnerabilityAlertsEnabled
                 vulnerabilityAlerts(states: OPEN) {
                     totalCount
-                }
-                collaborators(first: 100, after: null) {
-                    edges {
-                       permission
-#                        node {
-#                            id
-#                            name
-#                        }
-                    }
                 }
             }
             pageInfo {

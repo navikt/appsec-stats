@@ -62,7 +62,7 @@ class GitHub(
         }
 
         val oppdatertRepositoryliste = repositoryListe.plus(response.data?.organization?.repositories?.nodes?.mapNotNull {
-            GithubReposetory(it?.id, it?.name, it?.isArchived, it?.pushedAt, it?.hasVulnerabilityAlertsEnabled, it?.vulnerabilityAlerts?.totalCount, it?.collaborators?.edges?.size)
+            GithubReposetory(it?.id, it?.name, it?.isArchived, it?.pushedAt, it?.hasVulnerabilityAlertsEnabled, it?.vulnerabilityAlerts?.totalCount)
         } ?: emptyList())
 
         val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
@@ -141,7 +141,6 @@ class GithubReposetory (
     val pushedAt: DateTime?,
     val hasVulnerabilityAlertsEnabled: Boolean?,
     val vulnerabilityAlerts: Int?,
-    val colaboratorz: Int?,
 )
 
 data class GithubTeam (

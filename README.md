@@ -13,6 +13,7 @@ Sett opp env:
 * GCP_TEAM_PROJECT_ID=appsec
 * GITHUB_TOKEN=GITHUB_PAT_TOKEN
 * SLACK_WEBHOOK=slack
+* NAIS_API_TOKEN=verynais
 
 Kjør:
 no.nav.security.MainKt

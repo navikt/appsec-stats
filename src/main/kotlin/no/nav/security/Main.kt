@@ -7,6 +7,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -18,7 +19,8 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val github = GitHub(httpClient = httpClient(withGithubToken = true))
+    val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
+    val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
 //    val slack = Slack(
 //        httpClient = httpClient(withGithubToken = false),
 //        slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK")
@@ -29,6 +31,7 @@ fun main(): Unit = runBlocking {
         logger.info("Fetched ${githubTeams.size} teams from GitHub")
         val githubRepositories = github.fetchOrgRepositories()
         logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
+        val repoOwners = naisApi.adminsFor(githubRepositories.mapNotNull { it.name })
 //        val rows = bq.insert(githubStats)
 //        if(rows.isSuccess) {
 //            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
@@ -52,7 +55,7 @@ fun main(): Unit = runBlocking {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
+internal fun httpClient(authToken: String) = HttpClient(CIO) {
     expectSuccess = true
     install(Logging) {
         logger = logger
@@ -73,13 +76,13 @@ internal fun httpClient(withGithubToken: Boolean) = HttpClient(CIO) {
             ignoreUnknownKeys = true
         })
     }
-    if (withGithubToken) {
-        defaultRequest {
-            headers {
-                header(HttpHeaders.Accept, ContentType.Application.Json)
-                header(HttpHeaders.ContentType, ContentType.Application.Json)
-                header(HttpHeaders.Authorization, "Bearer ${requiredFromEnv("GITHUB_TOKEN")}")
-            }
+
+    defaultRequest {
+        headers {
+            header(HttpHeaders.Accept, ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            header(HttpHeaders.Authorization, "Bearer $authToken}")
+            header(UserAgent, "NAV IT McBotFace")
         }
     }
 
