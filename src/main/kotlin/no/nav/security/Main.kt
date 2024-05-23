@@ -19,32 +19,35 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(withGithubToken = true))
-    val slack = Slack(
-        httpClient = httpClient(withGithubToken = false),
-        slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK")
-    )
+//    val slack = Slack(
+//        httpClient = httpClient(withGithubToken = false),
+//        slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK")
+//    )
 
     try {
-        val githubStats = github.fetchStatsForBigQuery()
-        val rows = bq.insert(githubStats)
-        if(rows.isSuccess) {
-            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
-        } else {
-            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
-        }
+        val githubTeams = github.fetchTeams()
+        logger.info("Fetched ${githubTeams.size} teams from GitHub")
+        val githubRepositories = github.fetchOrgRepositories()
+        logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
+//        val rows = bq.insert(githubStats)
+//        if(rows.isSuccess) {
+//            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
+//        } else {
+//            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
+//        }
 
-        slack.send(
-            channel = "appsec-aktivitet",
-            heading = "GitHub Security Stats from appsec-stats job",
-            msg = "Inserted ${rows.getOrNull()} records into BigQuery"
-        )
+//        slack.send(
+//            channel = "appsec-aktivitet",
+//            heading = "GitHub Security Stats from appsec-stats job",
+//            msg = "Inserted ${rows.getOrNull()} records into BigQuery"
+//        )
     } catch (e: Exception) {
         logger.error("Error running appsec-stats: $e")
-        slack.send(
-            channel = "appsec-aktivitet",
-            heading = "Error running appsec-stats",
-            msg = e.message ?: "No error message"
-        )
+//        slack.send(
+//            channel = "appsec-aktivitet",
+//            heading = "Error running appsec-stats",
+//            msg = e.message ?: "No error message"
+//        )
     }
 }
 

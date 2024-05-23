@@ -1,0 +1,40 @@
+query (
+    $orgName: String!
+    $repoEndCursor: String
+) {
+    rateLimit {
+        remaining
+    }
+    organization(login: $orgName) {
+        repositories(
+            first: 100
+            after: $repoEndCursor
+            orderBy: { field: CREATED_AT, direction: ASC }
+        ) {
+            totalCount
+            nodes {
+                id
+                name
+                isArchived
+                pushedAt
+                hasVulnerabilityAlertsEnabled
+                vulnerabilityAlerts(states: OPEN) {
+                    totalCount
+                }
+                collaborators(first: 100, after: null) {
+                    edges {
+                       permission
+#                        node {
+#                            id
+#                            name
+#                        }
+                    }
+                }
+            }
+            pageInfo {
+                hasNextPage
+                endCursor
+            }
+        }
+    }
+}

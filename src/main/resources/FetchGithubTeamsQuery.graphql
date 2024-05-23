@@ -1,0 +1,26 @@
+query (
+  $orgName: String!
+  $teamsEndCursor: String
+) {
+  rateLimit {
+    remaining
+  }
+  organization(login: $orgName) {
+    teams(
+      first: 100
+      after: $teamsEndCursor
+      orderBy: { field: NAME, direction: ASC }
+    ) {
+      totalCount
+      nodes {
+        id
+        name
+        slug
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}
