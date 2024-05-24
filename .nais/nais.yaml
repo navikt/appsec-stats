@@ -20,7 +20,7 @@ spec:
     - secret: appsec-stats-config
   gcp:
     bigQueryDatasets:
-      - name: appsec_stats
+      - name: appsec
         permission: READWRITE
   accessPolicy:
     outbound:
