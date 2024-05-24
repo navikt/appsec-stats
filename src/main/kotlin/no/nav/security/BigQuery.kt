@@ -22,8 +22,8 @@ class BigQuery(projectID: String) {
         .build()
         .service
 
-    private val datasetName = "appsec_stats"
-    private val tableName = "github_security_stats"
+    private val datasetName = "appsec"
+    private val tableName = "github_repo_stats"
     private val schema =
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
