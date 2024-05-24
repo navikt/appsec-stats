@@ -27,7 +27,7 @@ class BigQuery(projectID: String) {
     private val schema =
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
-            Field.of("owners", StandardSQLTypeName.ARRAY),
+            Field.newBuilder("owners", StandardSQLTypeName.STRING).setMode(Field.Mode.REPEATED).build(),
             Field.of("lastPush", StandardSQLTypeName.DATE),
             Field.of("repositoryName", StandardSQLTypeName.STRING),
             Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
