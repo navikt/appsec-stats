@@ -21,6 +21,7 @@ fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
+    val slack = Slack(httpClient = httpClient("yolo"), requiredFromEnv("SLACK_WEBHOOK"))
     logger.info("Looking for GitHub repos")
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
@@ -28,7 +29,11 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
     bq.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
-        { ex -> ex.printStackTrace() /* todo: send to slack */ }
+        { ex -> slack.send(
+            channel = "appsec-aktivitet",
+            heading = "GitHub Security Stats",
+            msg = "Insert to BigQuery failed: ${ex.message}"
+        ) }
     )
 }
 

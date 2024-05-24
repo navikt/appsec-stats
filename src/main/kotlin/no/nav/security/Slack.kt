@@ -22,7 +22,6 @@ class Slack(
         )
 
         httpClient.post(slackWebhookUrl) {
-            header(HttpHeaders.ContentType, Json)
             setBody(toSend)
         }.status.isSuccess()
     }
