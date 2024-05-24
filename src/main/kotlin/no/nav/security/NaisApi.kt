@@ -5,14 +5,16 @@ import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
+import java.lang.RuntimeException
 
 class NaisApi(private val http: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
 
-    suspend fun adminsFor(repoFullNames: List<String>): Map<String, List<Team>> =
-        repoFullNames.associateWith { adminsFor(it) }
+    suspend fun adminsFor(repositories: List<GithubRepository>): List<RepositoryWithOwner> =
+        repositories.map { RepositoryWithOwner(it, adminsFor(it.name ?: throw RuntimeException("Repo without name does not COMPUTE!"))) }
 
-    private suspend fun adminsFor(repoFullName: String): List<Team> {
+    private suspend fun adminsFor(repoName: String?): List<String> {
+        val repoFullName = "navikt/$repoName"
         logger.info("Looking for $repoFullName's admins")
         val teams = mutableListOf<Team>()
         val offset = 0
@@ -21,7 +23,7 @@ class NaisApi(private val http: HttpClient) {
             teams += response.data.teams.nodes
         } while (response.data.teams.pageInfo.hasNextPage)
 
-        return teams
+        return teams.map { it.slug }
     }
 
     private suspend fun performGqlRequest(repoFullName: String, offset: Int): GqlResponse {

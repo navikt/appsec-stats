@@ -27,11 +27,10 @@ fun main(): Unit = runBlocking {
 //    )
 
     try {
-        val githubTeams = github.fetchTeams()
-        logger.info("Fetched ${githubTeams.size} teams from GitHub")
         val githubRepositories = github.fetchOrgRepositories()
         logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
-        val repoOwners = naisApi.adminsFor(githubRepositories.mapNotNull { it.name })
+        val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
+        logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 //        val rows = bq.insert(githubStats)
 //        if(rows.isSuccess) {
 //            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
@@ -81,7 +80,7 @@ internal fun httpClient(authToken: String) = HttpClient(CIO) {
         headers {
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.ContentType, ContentType.Application.Json)
-            header(HttpHeaders.Authorization, "Bearer $authToken}")
+            header(HttpHeaders.Authorization, "Bearer $authToken")
             header(UserAgent, "NAV IT McBotFace")
         }
     }
