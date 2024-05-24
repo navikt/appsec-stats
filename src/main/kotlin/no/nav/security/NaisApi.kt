@@ -15,9 +15,9 @@ class NaisApi(private val http: HttpClient) {
     private suspend fun adminsFor(repoName: String?): List<String> {
         val repoFullName = "navikt/$repoName"
         val teams = mutableListOf<Team>()
-        val offset = 0
         do {
-            val response = performGqlRequest(repoFullName, offset)
+            logger.info("looking for $repoName's owners")
+            val response = performGqlRequest(repoFullName, 0) // there will never be more than one page
             teams += response.data.teams.nodes
         } while (response.data.teams.pageInfo.hasNextPage)
 
