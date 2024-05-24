@@ -10,7 +10,6 @@ class GitHub(
     baseUrl: String = "https://api.github.com/graphql"
 ) {
 
-    private val records = mutableListOf<IssueCountRecord>()
     private val client = GraphQLKtorClient(
         url = URI(baseUrl).toURL(),
         httpClient = httpClient
@@ -40,9 +39,9 @@ class GitHub(
         val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
         val nextRepositoryPage = repositoryPageInfo?.endCursor.takeIf { repositoryPageInfo?.hasNextPage ?: false }
 
-//        if (nextRepositoryPage != null) {
-//            return fetchTeams(teamCursor = nextRepositoryPage, oppdatertRepositoryliste)
-//        }
+        if (nextRepositoryPage != null) {
+            return fetchOrgRepositories(repositoryCursor = nextRepositoryPage, oppdatertRepositoryliste)
+        }
         return oppdatertRepositoryliste
     }
 }

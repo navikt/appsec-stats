@@ -7,7 +7,7 @@ query (
     }
     organization(login: $orgName) {
         repositories(
-            first: 10
+            first: 100
             after: $repoEndCursor
             orderBy: { field: CREATED_AT, direction: ASC }
         ) {
