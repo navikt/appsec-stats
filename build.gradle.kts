@@ -55,7 +55,7 @@ graphql {
         packageName = "no.nav.security"
         serializer = GraphQLSerializer.KOTLINX
         schemaFile = file("${project.projectDir}/src/main/resources/github.graphql")
-        queryFiles = listOf(file("${project.projectDir}/src/main/resources/FetchGithubStatsQuery.graphql"), file("${project.projectDir}/src/main/resources/FetchGithubRepositoriesQuery.graphql"))
+        queryFiles = listOf(file("${project.projectDir}/src/main/resources/FetchGithubRepositoriesQuery.graphql"))
         parserOptions {
             maxCharacters = 2048576
             maxTokens = 100000

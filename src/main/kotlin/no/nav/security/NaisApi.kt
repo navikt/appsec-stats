@@ -10,8 +10,8 @@ import java.lang.RuntimeException
 class NaisApi(private val http: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
 
-    suspend fun adminsFor(repositories: List<GithubRepository>): List<RepositoryWithOwner> =
-        repositories.map { RepositoryWithOwner(it, adminsFor(it.name ?: throw RuntimeException("Repo without name does not COMPUTE!"))) }
+    suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> =
+        repositories.map {IssueCountRecord(adminsFor(it.name), it.pushedAt, it.name, it.hasVulnerabilityAlertsEnabled, it.vulnerabilityAlerts, it.isArchived)}
 
     private suspend fun adminsFor(repoName: String?): List<String> {
         val repoFullName = "navikt/$repoName"

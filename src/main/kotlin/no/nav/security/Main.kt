@@ -31,12 +31,12 @@ fun main(): Unit = runBlocking {
         logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
         val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
         logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
-//        val rows = bq.insert(githubStats)
-//        if(rows.isSuccess) {
-//            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
-//        } else {
-//            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
-//        }
+        val rows = bq.insert(repositoryWithOwners)
+        if(rows.isSuccess) {
+            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
+        } else {
+            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
+        }
 
 //        slack.send(
 //            channel = "appsec-aktivitet",

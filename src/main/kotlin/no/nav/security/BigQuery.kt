@@ -11,6 +11,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
 
@@ -26,8 +27,7 @@ class BigQuery(projectID: String) {
     private val schema =
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
-            Field.of("teamName", StandardSQLTypeName.STRING),
-            Field.of("naisteam", StandardSQLTypeName.STRING),
+            Field.of("owners", StandardSQLTypeName.ARRAY),
             Field.of("lastPush", StandardSQLTypeName.DATE),
             Field.of("repositoryName", StandardSQLTypeName.STRING),
             Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
@@ -39,13 +39,10 @@ class BigQuery(projectID: String) {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
         val rows = records.map {
-            // Github DateTime format: 2024-01-31T12:06:05Z
-            val lastPushDate = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
-                "teamName" to it.teamName,
-                "naisTeam" to it.naisTeam,
-                "lastPush" to lastPushDate,
+                "owners" to it.owners,
+                "lastPush" to it.lastPush,
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
                 "vulnerabilityCount" to it.vulnerabilityCount,
@@ -79,9 +76,8 @@ class BigQuery(projectID: String) {
 }
 
 class IssueCountRecord(
-    val teamName: String,
-    val naisTeam: String,
-    val lastPush: String,
+    val owners: List<String>,
+    val lastPush: DateTime?,
     val repositoryName: String,
     val vulnerabilityAlertsEnabled: Boolean,
     val vulnerabilityCount: Int,
