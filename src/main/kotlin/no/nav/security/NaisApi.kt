@@ -5,7 +5,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import kotlinx.serialization.Serializable
-import java.lang.RuntimeException
 
 class NaisApi(private val http: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
@@ -15,7 +14,6 @@ class NaisApi(private val http: HttpClient) {
 
     private suspend fun adminsFor(repoName: String?): List<String> {
         val repoFullName = "navikt/$repoName"
-        logger.info("Looking for $repoFullName's admins")
         val teams = mutableListOf<Team>()
         val offset = 0
         do {
