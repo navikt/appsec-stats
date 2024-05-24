@@ -11,9 +11,8 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.UUID
+import java.util.*
 
 
 class BigQuery(projectID: String) {
@@ -39,10 +38,12 @@ class BigQuery(projectID: String) {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
         val rows = records.map {
+            // Github DateTime format: 2024-01-31T12:06:05Z
+            val lastPush = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "owners" to it.owners,
-                "lastPush" to it.lastPush,
+                "lastPush" to lastPush,
                 "repositoryName" to it.repositoryName,
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
                 "vulnerabilityCount" to it.vulnerabilityCount,
