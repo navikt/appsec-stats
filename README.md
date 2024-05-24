@@ -7,6 +7,17 @@ Creates a ["Dataprodukt"](https://docs.knada.io/dataprodukter/dataprodukt/) with
 ## ⌨️ Usage
 Run as a [Naisjob](https://doc.nais.io/explanation/workloads/job/?h=job)
 
+### Lokal kjøring
+Sett opp env:
+
+* GCP_TEAM_PROJECT_ID=appsec
+* GITHUB_TOKEN=GITHUB_PAT_TOKEN
+* SLACK_WEBHOOK=slack
+* NAIS_API_TOKEN=verynais
+
+Kjør:
+no.nav.security.MainKt
+
 ## ⚖️ License
 [MIT](LICENSE).
 
