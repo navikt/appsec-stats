@@ -56,15 +56,6 @@ fun main(): Unit = runBlocking {
 @OptIn(ExperimentalSerializationApi::class)
 internal fun httpClient(authToken: String) = HttpClient(CIO) {
     expectSuccess = true
-    install(Logging) {
-        logger = logger
-        level = LogLevel.HEADERS
-        sanitizeHeader { header -> header == HttpHeaders.Authorization }
-        filter {
-            // Log everything except requests containing slack webhook
-            !it.host.contains("hooks.slack.com")
-        }
-    }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)
         exponentialDelay()
