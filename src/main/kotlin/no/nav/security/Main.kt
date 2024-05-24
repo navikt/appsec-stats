@@ -21,36 +21,14 @@ fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-//    val slack = Slack(
-//        httpClient = httpClient(withGithubToken = false),
-//        slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK")
-//    )
-
-    try {
-        val githubRepositories = github.fetchOrgRepositories()
-        logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
-        val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
-        logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
-        val rows = bq.insert(repositoryWithOwners)
-        if(rows.isSuccess) {
-            logger.info("Inserted ${rows.getOrDefault(0)} records into BigQuery")
-        } else {
-            throw RuntimeException("Error inserting records into BigQuery", rows.exceptionOrNull())
-        }
-
-//        slack.send(
-//            channel = "appsec-aktivitet",
-//            heading = "GitHub Security Stats from appsec-stats job",
-//            msg = "Inserted ${rows.getOrNull()} records into BigQuery"
-//        )
-    } catch (e: Exception) {
-        logger.error("Error running appsec-stats: $e")
-//        slack.send(
-//            channel = "appsec-aktivitet",
-//            heading = "Error running appsec-stats",
-//            msg = e.message ?: "No error message"
-//        )
-    }
+    val githubRepositories = github.fetchOrgRepositories()
+    logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
+    val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
+    logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
+    bq.insert(repositoryWithOwners).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
+        { ex -> ex.printStackTrace() /* todo: send to slack */ }
+    )
 }
 
 @OptIn(ExperimentalSerializationApi::class)
