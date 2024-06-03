@@ -3,12 +3,15 @@ kind: Naisjob
 metadata:
   labels:
     team: appsec
-  name:  appsec-stats
+  name: appsec-stats
   namespace: appsec
 spec:
   image: "{{ image }}"
   schedule: "5 22 * * *"
   ttlSecondsAfterFinished: 300
+  azure:
+    application:
+      enabled: true
   resources:
     limits:
       cpu: "300m"
@@ -28,3 +31,4 @@ spec:
         - host: api.github.com
         - host: hooks.slack.com
         - host: console.nav.cloud.nais.io
+        - host: teamkatalog-api.intern.nav.no
