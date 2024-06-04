@@ -27,8 +27,11 @@ spec:
         permission: READWRITE
   accessPolicy:
     outbound:
+      rules:
+        - application: team-catalog-backend
+          cluster: prod-gcp
+          namespace: org
       external:
         - host: api.github.com
         - host: hooks.slack.com
         - host: console.nav.cloud.nais.io
-        - host: teamkatalog-api.intern.nav.no
