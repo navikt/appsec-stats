@@ -24,21 +24,30 @@ class Teamcatalog(
         var foundTeams = 0
         // Iterate through teams and find the product area for each naisTeam
         teams.map { team ->
-            val productArea = listOfProductAreasWithNaisTeams.find {
+            listOfProductAreasWithNaisTeams.find {
+                // Find the product area for the team if the team has a naisTeam
                 it.naisTeams.any { naisTeam -> team.owners.contains(naisTeam) }
+            }?.let { result ->
+                // Find the product area with the same id as the id from last find
+                activeProductAreas.content.find { po ->
+                    po.id == result.id
+                }?.let { productArea ->
+                    // Set the product area for the team
+                    team.productArea = productArea.name
+                    foundTeams++
+                }
             }
-            team.productArea = productArea?.name?.also { foundTeams++ }
         }
         logger.info("Found product area for $foundTeams teams")
     }
 
     @Serializable
-    private data class ProductAreaResponse(val content: List<ProductArea>)
+    internal data class ProductAreaResponse(val content: List<ProductArea>)
 
     @Serializable
-    private data class ProductArea(val id: String, val name: String)
+    internal data class ProductArea(val id: String, val name: String)
 
     @Serializable
-    private data class TeamResponse(val name: String, val naisTeams: List<String>)
+    internal data class TeamResponse(val id: String, val name: String, val naisTeams: List<String>)
 }
 
