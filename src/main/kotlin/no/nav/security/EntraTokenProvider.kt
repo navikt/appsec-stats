@@ -2,24 +2,19 @@ package no.nav.security
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import java.net.URI
-import java.net.URL
+import kotlinx.serialization.Serializable
 
 class EntraTokenProvider(
     private val scope: String,
     private val client: HttpClient
 ) {
     private var config: AzureConfig = AzureConfig(
-        tokenEndpoint = URI((requiredFromEnv("AZURE_OPENID_CONFIG_TOKEN_ENDPOINT"))).toURL(),
+        tokenEndpoint = requiredFromEnv("AZURE_OPENID_CONFIG_TOKEN_ENDPOINT"),
         clientId = requiredFromEnv("AZURE_APP_CLIENT_ID"),
         clientSecret = requiredFromEnv("AZURE_APP_CLIENT_SECRET"),
-        issuer = requiredFromEnv("AZURE_OPENID_CONFIG_ISSUER"),
-        jwks = URI(requiredFromEnv("AZURE_OPENID_CONFIG_JWKS_URI")).toURL()
+        issuer = requiredFromEnv("AZURE_OPENID_CONFIG_ISSUER")
     )
 
     suspend fun getClientCredentialToken() =
@@ -39,14 +34,15 @@ class EntraTokenProvider(
     }
 
     private companion object {
+        @Serializable
         private data class AzureConfig(
-            val tokenEndpoint: URL,
+            val tokenEndpoint: String,
             val clientId: String,
             val clientSecret: String,
-            val jwks: URL,
             val issuer: String
         )
 
+        @Serializable
         private data class Token(val expires_in: Long, val access_token: String)
     }
 }
