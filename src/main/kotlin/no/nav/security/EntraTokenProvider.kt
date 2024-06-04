@@ -26,11 +26,16 @@ class EntraTokenProvider(
         getAccessToken("client_id=${config.clientId}&client_secret=${config.clientSecret}&scope=$scope&grant_type=client_credentials")
 
     private suspend fun getAccessToken(body: String): String {
-            return client.post(config.tokenEndpoint) {
-                accept(ContentType.Application.Json)
-                contentType(ContentType.Application.FormUrlEncoded)
-                setBody(body)
-            }.body<Token>().access_token
+        val response = client.post(config.tokenEndpoint) {
+            accept(ContentType.Application.Json)
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(body)
+        }
+        if(response.status.isSuccess()) {
+            return response.body<Token>().access_token
+        } else {
+            throw RuntimeException("Failed to get access token: ${response.status.value}")
+        }
     }
 
     private companion object {
