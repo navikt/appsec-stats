@@ -1,14 +1,13 @@
 package no.nav.security
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.plugins.logging.*
+import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.http.HttpHeaders.UserAgent
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -22,11 +21,20 @@ fun main(): Unit = runBlocking {
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val slack = Slack(httpClient = httpClient("yolo"), requiredFromEnv("SLACK_WEBHOOK"))
+    val teamkatalogAccessToken = EntraTokenProvider(
+        scope = requiredFromEnv("TEAMKATALOG_SCOPE"), client = httpClient("yolo")
+    ).getClientCredentialToken()
+    val teamcatalog = Teamcatalog(httpClient = httpClient(teamkatalogAccessToken))
+
     logger.info("Looking for GitHub repos")
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
+
     val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
+
+    teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
+
     bq.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
         { ex -> slack.send(
@@ -59,10 +67,9 @@ internal fun httpClient(authToken: String) = HttpClient(CIO) {
             header(UserAgent, "NAV IT McBotFace")
         }
     }
-
 }
 
-private fun requiredFromEnv(name: String) =
+internal fun requiredFromEnv(name: String) =
     System.getProperty(name)
         ?: System.getenv(name)
         ?: throw RuntimeException("unable to find '$name' in environment")
