@@ -22,7 +22,7 @@ fun main(): Unit = runBlocking {
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val slack = Slack(httpClient = httpClient("yolo"), requiredFromEnv("SLACK_WEBHOOK"))
     val teamkatalogAccessToken = EntraTokenProvider(
-        scope = requiredFromEnv("TEAMKATALOG_SCOPE"), client = httpClient("yolo")
+        scope = "api://prod-gcp.org.team-catalog-backend/.default", client = httpClient("yolo")
     ).getClientCredentialToken()
     val teamcatalog = Teamcatalog(httpClient = httpClient(teamkatalogAccessToken))
 

@@ -9,11 +9,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class TeamcatalogTest {
 
     @Test
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     fun `updateRecordsWithProductAreasForTeams should update teams with product areas`() = runBlocking {
         val httpClient = HttpClient(MockEngine) {
             install(ContentNegotiation) {
@@ -51,6 +53,20 @@ class TeamcatalogTest {
                                 ), headers = headersOf("Content-Type", ContentType.Application.Json.toString())
                             )
                         }
+                        "/productArea/3" -> {
+                            respond(
+                                Json.encodeToString(
+                                    Teamcatalog.TeamResponse(id = "3", name = "A-Team", naisTeams = emptyList())
+                                ), headers = headersOf("Content-Type", ContentType.Application.Json.toString())
+                            )
+                        }
+                        "/productArea/4" -> {
+                            respond(
+                                Json.encodeToString(
+                                    Teamcatalog.TeamResponse(id = "4", name = "B-Team", naisTeams = emptyList())
+                                ), headers = headersOf("Content-Type", ContentType.Application.Json.toString())
+                            )
+                        }
                         else -> error("Unhandled ${request.url.fullPath}")
                     }
                 }
@@ -60,12 +76,14 @@ class TeamcatalogTest {
         val teamcatalog = Teamcatalog(httpClient)
         val teams = listOf(
             IssueCountRecord(listOf("appsec"), "2022-01-01", "repo1", true, 1, false, null),
-            IssueCountRecord(listOf("nais"), "2022-01-01", "repo2", true, 1, false, null)
+            IssueCountRecord(listOf("nais"), "2022-01-01", "repo2", true, 1, false, null),
+            IssueCountRecord(emptyList(), "2022-01-01", "repo3", true, 1, false, null)
         )
 
         teamcatalog.updateRecordsWithProductAreasForTeams(teams)
 
         assertEquals("PO AppSec", teams[0].productArea)
         assertEquals("PO Platform", teams[1].productArea)
+        assertNull(teams[2].productArea)
     }
 }

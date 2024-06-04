@@ -24,9 +24,9 @@ class Teamcatalog(
         var foundTeams = 0
         // Iterate through teams and find the product area for each naisTeam
         teams.map { team ->
-            listOfProductAreasWithNaisTeams.find {
-                // Find the product area for the team if the team has a naisTeam
-                it.naisTeams.any { naisTeam -> team.owners.contains(naisTeam) }
+            // Find the product area for the team if the team has a naisTeam
+            listOfProductAreasWithNaisTeams.find { productAreas ->
+                productAreas.naisTeams.any { naisTeam -> team.owners.contains(naisTeam) }
             }?.let { result ->
                 // Find the product area with the same id as the id from last find
                 activeProductAreas.content.find { po ->
