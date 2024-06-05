@@ -23,7 +23,7 @@ class Teamcatalog(
 
         // Fetch all teams in active product areas and return list of product areas
         val listOfProductAreasWithNaisTeams: List<TeamResponse> = activeProductAreas.content.map {
-            httpClient.get { url("$baseUrl/productArea/${it.id}") }
+            httpClient.get { url("$baseUrl/productarea/${it.id}") }
                 .body<TeamResponse>()
         }
 
