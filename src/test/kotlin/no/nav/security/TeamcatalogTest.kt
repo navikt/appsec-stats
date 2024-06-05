@@ -73,7 +73,7 @@ class TeamcatalogTest {
             }
         }
 
-        val teamcatalog = Teamcatalog(httpClient)
+        val teamcatalog = Teamcatalog()
         val teams = listOf(
             IssueCountRecord(listOf("appsec"), "2022-01-01", "repo1", true, 1, false, null),
             IssueCountRecord(listOf("nais"), "2022-01-01", "repo2", true, 1, false, null),
