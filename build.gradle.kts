@@ -6,7 +6,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 val ktorVersion = "2.3.11"
 val logbackVersion = "1.5.6"
 val logstashEncoderVersion = "7.4"
-val bigQueryClientVersion = "2.39.1"
+val bigQueryClientVersion = "2.40.2"
 
 val expediaGraphQlVersion = "7.1.1"
 
