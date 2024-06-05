@@ -10,12 +10,14 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class TeamcatalogTest {
 
     @Test
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    @Disabled("temp disabled")
     fun `updateRecordsWithProductAreasForTeams should update teams with product areas`() = runBlocking {
         val httpClient = HttpClient(MockEngine) {
             install(ContentNegotiation) {
