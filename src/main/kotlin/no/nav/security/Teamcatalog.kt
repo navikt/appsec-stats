@@ -54,7 +54,7 @@ class Teamcatalog(
     internal data class ProductArea(val id: String, val name: String)
 
     @Serializable
-    internal data class TeamResponse(val id: String, val name: String, val naisTeams: List<String>)
+    internal data class TeamResponse(val id: String, val name: String, val naisTeams: List<String>? = emptyList())
 }
 
 private fun tcHttpClient() = HttpClient(CIO) {
