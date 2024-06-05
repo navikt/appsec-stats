@@ -2,13 +2,20 @@ package no.nav.security
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 class Teamcatalog(
-    val httpClient: HttpClient
+    //val httpClient: HttpClient
 ) {
     private val baseUrl = "http://team-catalog-backend.org.svc.cluster.local"
+    private val httpClient = tcHttpClient()
 
     suspend fun updateRecordsWithProductAreasForTeams(teams: List<IssueCountRecord>) {
         val activeProductAreas = httpClient.get { url("$baseUrl/productarea?status=ACTIVE") }
@@ -50,3 +57,24 @@ class Teamcatalog(
     internal data class TeamResponse(val id: String, val name: String, val naisTeams: List<String>)
 }
 
+private fun tcHttpClient() = HttpClient(CIO) {
+    expectSuccess = true
+    install(HttpRequestRetry) {
+        retryOnServerErrors(maxRetries = 5)
+        exponentialDelay()
+    }
+    install(ContentNegotiation) {
+        json(json = Json {
+            explicitNulls = false
+            ignoreUnknownKeys = true
+        })
+    }
+
+    defaultRequest {
+        headers {
+            header(HttpHeaders.Accept, ContentType.Application.Json)
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            header(HttpHeaders.UserAgent, "NAV IT McBotFace")
+        }
+    }
+}

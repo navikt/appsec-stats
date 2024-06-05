@@ -21,10 +21,10 @@ fun main(): Unit = runBlocking {
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val slack = Slack(httpClient = httpClient("yolo"), requiredFromEnv("SLACK_WEBHOOK"))
-    val teamkatalogAccessToken = EntraTokenProvider(
+    /*val teamkatalogAccessToken = EntraTokenProvider(
         scope = "api://prod-gcp.org.team-catalog-backend/.default", client = httpClient("yolo")
-    ).getClientCredentialToken()
-    val teamcatalog = Teamcatalog(httpClient = httpClient(teamkatalogAccessToken))
+    ).getClientCredentialToken()*/
+    val teamcatalog = Teamcatalog()
 
     logger.info("Looking for GitHub repos")
     val githubRepositories = github.fetchOrgRepositories()
