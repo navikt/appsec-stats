@@ -16,7 +16,7 @@ val mainClassName = "no.nav.security.MainKt"
 
 plugins {
     kotlin("jvm") version "1.9.24"
-    kotlin("plugin.serialization") version "1.9.24"
+    kotlin("plugin.serialization") version "2.0.0"
     id("com.expediagroup.graphql") version "7.1.1"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
