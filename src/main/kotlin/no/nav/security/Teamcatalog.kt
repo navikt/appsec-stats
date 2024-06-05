@@ -8,8 +8,7 @@ import kotlinx.serialization.Serializable
 class Teamcatalog(
     val httpClient: HttpClient
 ) {
-
-    private val baseUrl = "https://teamkatalog-api.intern.nav.no"
+    private val baseUrl = "http://team-catalog-backend.org.svc.cluster.local"
 
     suspend fun updateRecordsWithProductAreasForTeams(teams: List<IssueCountRecord>) {
         val activeProductAreas = httpClient.get { url("$baseUrl/productarea?status=ACTIVE") }
