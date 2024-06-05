@@ -33,8 +33,7 @@ fun main(): Unit = runBlocking {
     val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
-    // Returns 403, temp disabled
-    //teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
+    teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     bq.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
