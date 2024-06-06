@@ -12,38 +12,38 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 class Teamcatalog(
-    //val httpClient: HttpClient
+    val httpClient: HttpClient
 ) {
     private val baseUrl = "http://team-catalog-backend.org.svc.cluster.local"
-    private val httpClient = tcHttpClient()
 
     suspend fun updateRecordsWithProductAreasForTeams(teams: List<IssueCountRecord>) {
         val activeProductAreas = httpClient.get { url("$baseUrl/productarea?status=ACTIVE") }
             .body<ProductAreaResponse>()
 
-        // Fetch all teams in active product areas and return list of product areas
-        val listOfProductAreasWithNaisTeams: List<TeamResponse> = activeProductAreas.content.map {
-            httpClient.get { url("$baseUrl/productarea/${it.id}") }
+        // Fetch all teams in active product areas
+        val activeTeamsInProductAreas: List<TeamResponse> = activeProductAreas.content.map {
+            httpClient.get { url("$baseUrl/team?productAreaId=${it.id}&status=ACTIVE") }
                 .body<TeamResponse>()
         }
 
         var foundTeams = 0
-        // Iterate through teams and find the product area for each naisTeam
-        teams.map { team ->
-            // Find the product area for the team if the team has a naisTeam
-            listOfProductAreasWithNaisTeams.find { productAreas ->
-                productAreas.naisTeams.any { naisTeam -> team.owners.contains(naisTeam) }
-            }?.let { result ->
-                // Find the product area with the same id as the id from last find
-                activeProductAreas.content.find { po ->
-                    po.id == result.id
-                }?.let { productArea ->
-                    // Set the product area for the team
-                    team.productArea = productArea.name
-                    foundTeams++
+        // For each IssueCountRecord, iterate through the list of owners
+        // Find matching naisTeam in the list teams in of product areas
+        // Then we find the product area for that team and update the record
+        teams.forEach { record ->
+            record.owners.forEach { owner ->
+                activeTeamsInProductAreas.forEach { teamResponse ->
+                    teamResponse.content.forEach { team ->
+                        if (team.naisTeams.contains(owner)) {
+                            // Update the record with the product area, overwriting any previous value
+                            record.productArea = activeProductAreas.content.find { it.id == team.productAreaId }?.name
+                            foundTeams++
+                        }
+                    }
                 }
             }
         }
+
         logger.info("Found product area for $foundTeams teams")
     }
 
@@ -54,27 +54,12 @@ class Teamcatalog(
     internal data class ProductArea(val id: String, val name: String)
 
     @Serializable
-    internal data class TeamResponse(val id: String, val name: String, val naisTeams: List<String>? = emptyList())
-}
+    internal data class TeamResponse(val content: List<TeamCatalogTeam>)
 
-private fun tcHttpClient() = HttpClient(CIO) {
-    expectSuccess = true
-    install(HttpRequestRetry) {
-        retryOnServerErrors(maxRetries = 5)
-        exponentialDelay()
-    }
-    install(ContentNegotiation) {
-        json(json = Json {
-            explicitNulls = false
-            ignoreUnknownKeys = true
-        })
-    }
-
-    defaultRequest {
-        headers {
-            header(HttpHeaders.Accept, ContentType.Application.Json)
-            header(HttpHeaders.ContentType, ContentType.Application.Json)
-            header(HttpHeaders.UserAgent, "NAV IT McBotFace")
-        }
-    }
+    @Serializable
+    internal data class TeamCatalogTeam(
+        val productAreaId: String,
+        val name: String,
+        val naisTeams: List<String> = emptyList()
+    )
 }

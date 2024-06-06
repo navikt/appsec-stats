@@ -20,11 +20,11 @@ fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-    val slack = Slack(httpClient = httpClient("yolo"), requiredFromEnv("SLACK_WEBHOOK"))
+    val slack = Slack(httpClient = httpClient(null), requiredFromEnv("SLACK_WEBHOOK"))
     /*val teamkatalogAccessToken = EntraTokenProvider(
         scope = "api://prod-gcp.org.team-catalog-backend/.default", client = httpClient("yolo")
     ).getClientCredentialToken()*/
-    val teamcatalog = Teamcatalog()
+    val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
     logger.info("Looking for GitHub repos")
     val githubRepositories = github.fetchOrgRepositories()
@@ -46,7 +46,7 @@ fun main(): Unit = runBlocking {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-internal fun httpClient(authToken: String) = HttpClient(CIO) {
+internal fun httpClient(authToken: String?) = HttpClient(CIO) {
     expectSuccess = true
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)
@@ -63,7 +63,7 @@ internal fun httpClient(authToken: String) = HttpClient(CIO) {
         headers {
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.ContentType, ContentType.Application.Json)
-            header(HttpHeaders.Authorization, "Bearer $authToken")
+            authToken?.let { header(HttpHeaders.Authorization, "Bearer $authToken") }
             header(UserAgent, "NAV IT McBotFace")
         }
     }
