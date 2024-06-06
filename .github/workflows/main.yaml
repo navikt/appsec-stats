@@ -36,6 +36,6 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - uses: nais/deploy/actions/deploy@60cf43ccea0f0df491654b2abd818e9e1768354b # ratchet:nais/deploy/actions/deploy@v2
         env:
-          RESOURCE: .nais/nais.yaml
+          RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
           IMAGE: ${{ steps.docker-push.outputs.image }}
