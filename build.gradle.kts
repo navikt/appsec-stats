@@ -6,7 +6,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 val ktorVersion = "2.3.11"
 val logbackVersion = "1.5.6"
 val logstashEncoderVersion = "7.4"
-val bigQueryClientVersion = "2.39.1"
+val bigQueryClientVersion = "2.40.2"
 
 val expediaGraphQlVersion = "7.1.1"
 
@@ -15,8 +15,8 @@ val junitJupiterVersion = "5.10.2"
 val mainClassName = "no.nav.security.MainKt"
 
 plugins {
-    kotlin("jvm") version "1.9.24"
-    kotlin("plugin.serialization") version "1.9.24"
+    kotlin("jvm") version "2.0.0"
+    kotlin("plugin.serialization") version "2.0.0"
     id("com.expediagroup.graphql") version "7.1.1"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
@@ -87,6 +87,6 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "8.7"
+        gradleVersion = "8.8"
     }
 }

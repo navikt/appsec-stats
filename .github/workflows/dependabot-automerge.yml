@@ -2,11 +2,9 @@ name: Merge Dependabot PRs
 on:
   schedule:
     - cron: '0 10 * * *'
-
 permissions:
   contents: write
   pull-requests: write
-
 jobs:
   merge-pullrequests:
     runs-on: ubuntu-latest
@@ -14,7 +12,7 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@8348ea7f5d949b08c7f125a44b569c9626b05db3 # ratchet:dependabot/fetch-metadata@v1
+        uses: dependabot/fetch-metadata@5e5f99653a5b510e8555840e80cbf1514ad4af38 # ratchet:dependabot/fetch-metadata@v2
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - name: merge
