@@ -2,14 +2,8 @@ package no.nav.security
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 class Teamcatalog(
     val httpClient: HttpClient
@@ -26,7 +20,7 @@ class Teamcatalog(
                 .body<TeamResponse>()
         }
 
-        var foundTeams = 0
+        var foundPoForRepos = 0
         // For each IssueCountRecord, iterate through the list of owners
         // Find matching naisTeam in the list teams in of product areas
         // Then we find the product area for that team and update the record
@@ -37,14 +31,14 @@ class Teamcatalog(
                         if (team.naisTeams.contains(owner)) {
                             // Update the record with the product area, overwriting any previous value
                             record.productArea = activeProductAreas.content.find { it.id == team.productAreaId }?.name
-                            foundTeams++
+                            foundPoForRepos++
                         }
                     }
                 }
             }
         }
 
-        logger.info("Found product area for $foundTeams teams")
+        logger.info("Found product area for $foundPoForRepos repos")
     }
 
     @Serializable
