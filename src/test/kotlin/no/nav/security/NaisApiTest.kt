@@ -17,6 +17,7 @@ import java.time.ZoneId
 class NaisApiTest {
 
     @Test
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     fun `updateRecordsWithDeploymentStatus should update deployment status for repositories`() = runBlocking {
         val httpClient = HttpClient(MockEngine) {
             expectSuccess = true
@@ -63,7 +64,7 @@ class NaisApiTest {
         assertEquals("foo", repositories[0].repositoryName)
 
         assertEquals(true, repositories[1].isDeployed)
-        val expectedDate = Instant.parse("2024-06-13T09:17:33.396884Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
+        val expectedDate = Instant.parse("2024-06-13T09:17:33.396658Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
         assertEquals(expectedDate, repositories[1].deployDate)
         assertEquals("bar", repositories[1].repositoryName)
 
@@ -78,96 +79,16 @@ class NaisApiTest {
                 "deployments":{
                   "nodes":[
                     {
-                      "repository":"appsec/foo",
-                      "statuses":[
-                        {
-                          "created":"2024-06-13T09:17:26.233846Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:45.919573Z",
-                          "status":"queued"
-                        }
-                      ]
-                    },
-                    {
                       "repository":"appsec/bar",
-                      "statuses":[
-                        {
-                          "created":"2024-06-13T09:17:33.396884Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:17:33.396658Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-02-27T12:16:31.073059Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2023-05-13T09:17:17.328088Z",
-                          "status":"success"
-                        }
-                      ]
+                      "created":"2024-06-13T09:17:33.396658Z"
                     },
                     {
                       "repository":"appsec/appsec",
-                      "statuses":[
-                        {
-                          "created":"2024-06-13T09:17:18.633794Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:17:07.999223Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:46.525771Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:46.394207Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:42.928174Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:42.824505Z",
-                          "status":"queued"
-                        }
-                      ]
+                      "created":"2024-06-13T09:17:18.633794Z"
                     },
                     {
                       "repository":"appsec/definitelynotappsec",
-                      "statuses":[
-                        {
-                          "created":"2024-06-13T09:17:18.633794Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:17:07.999223Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:46.525771Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:46.394207Z",
-                          "status":"in_progress"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:42.928174Z",
-                          "status":"success"
-                        },
-                        {
-                          "created":"2024-06-13T09:16:42.824505Z",
-                          "status":"queued"
-                        }
-                      ]
+                      "created":"2024-06-13T09:16:42.824505Z"
                     }
                   ],
                   "pageInfo":{

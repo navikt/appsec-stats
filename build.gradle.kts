@@ -80,7 +80,6 @@ tasks {
         }
     }
 
-
     withType<Test> {
         useJUnitPlatform()
         testLogging {

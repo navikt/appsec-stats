@@ -17,32 +17,45 @@ import java.time.format.DateTimeFormatter
 class NaisApi(private val http: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
 
-    suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> =
-        repositories.map {IssueCountRecord(adminsFor(it.name), it.pushedAt, it.name, it.hasVulnerabilityAlertsEnabled, it.vulnerabilityAlerts, it.isArchived, null)}
+    suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
+        var iterations = 0
+        val result = repositories.map {
+            iterations++
+            if (iterations % 100 == 0) {
+                logger.info("Fetched $iterations repo owners from NAIS API")
+            }
+            IssueCountRecord(
+                owners = adminsFor(it.name),
+                lastPush = it.pushedAt,
+                repositoryName = it.name,
+                vulnerabilityAlertsEnabled = it.hasVulnerabilityAlertsEnabled,
+                vulnerabilityCount = it.vulnerabilityAlerts,
+                isArchived = it.isArchived,
+                productArea = null
+            )
+        }
+
+        return result
+    }
 
     suspend fun updateRecordsWithDeploymentStatus(repositories: List<IssueCountRecord>) {
         var deployedApps = 0
         val listOfDeployments = createListOfRepoDeploymentStatus()
-        repositories.forEach {record ->
+        repositories.forEach { record ->
             listOfDeployments.find { deployment -> deployment.repository == record.repositoryName }.let {
                 record.isDeployed = it?.deployed ?: false
                 record.deployDate = it?.created?.toString()
             }
-            if(record.isDeployed) deployedApps++
+            if (record.isDeployed) deployedApps++
         }
         logger.info("Found $deployedApps deployed apps")
     }
 
     private suspend fun adminsFor(repoName: String?): List<String> {
         val repoFullName = "navikt/$repoName"
-        val teams = mutableListOf<Team>()
-        do {
-            logger.info("looking for $repoName's owners")
-            val response = fetchTeamWithAdminForRepo(repoFullName, 0) // there will never be more than one page
-            teams += response.data.teams.nodes
-        } while (response.data.teams.pageInfo.hasNextPage)
+        val response = fetchTeamWithAdminForRepo(repoFullName, 0)
 
-        return teams.map { it.slug }
+        return response.data.teams.nodes.map { it.slug }
     }
 
     private suspend fun fetchTeamWithAdminForRepo(repoFullName: String, offset: Int): TeamsGqlResponse {
@@ -50,14 +63,14 @@ class NaisApi(private val http: HttpClient) {
                       teams(filter: ${"$"}filter, offset: ${"$"}offset, limit: ${"$"}limit) {
                           nodes {
                               slug 
-                              slackChannel 
                           }
                           pageInfo{ 
                               hasNextPage 
                           } 
                       }
                   }"""
-        val reqBody = RequestBody(queryString.replace("\n", " "),
+        val reqBody = RequestBody(
+            queryString.replace("\n", " "),
             Variables(Filter(GitHubFilter(repoFullName, "admin")), offset, 100)
         )
 
@@ -71,24 +84,17 @@ class NaisApi(private val http: HttpClient) {
             logger.info("looking for deployments at offset $offset")
             val response = fetchActiveDeploymentsWithRepo(offset)
             response.data.deployments.nodes.forEach { deployment ->
-                // Deployments are sorted by created date, and then fetch the most recent one.
-                val latestDeploy = deployment.statuses.filter { status -> status.status == "success" }
-                    .maxByOrNull { it.created } // Most recent?
-
                 deployments.add(
                     RepoDeploymentStatus(
                         deployment.repository.substringAfter("/"),
-                        latestDeploy?.status == "success",
-                        latestDeploy?.created?.let { zonedDateTime ->
-                            Instant.parse(zonedDateTime.toString()).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                        }
+                        true,
+                        Instant.parse(deployment.created.toString()).atZone(ZoneId.systemDefault()).toLocalDateTime()
                     )
                 )
             }
 
             offset += 100
         } while (response.data.deployments.pageInfo.hasNextPage)
-        logger.info("Final nais api deployment offset: $offset")
         return deployments
     }
 
@@ -97,17 +103,15 @@ class NaisApi(private val http: HttpClient) {
                       deployments(offset: ${"$"}offset, limit: ${"$"}limit) { 
                         nodes {
                           repository
-                          statuses {
-                            status
-                            created
-                          }
+                          created
                         }
                         pageInfo {
                           hasNextPage
                         }
                       } 
                   }"""
-        val reqBody = RequestBody(queryString.replace("\n", " "),
+        val reqBody = RequestBody(
+            queryString.replace("\n", " "),
             Variables(null, offset, null)
         )
 
@@ -137,7 +141,7 @@ private data class TeamsGqlResponseData(val teams: TeamsResponse)
 private data class TeamsResponse(val nodes: List<Team>, val pageInfo: PageInfo)
 
 @Serializable
-private data class Team(val slug: String, val slackChannel: String)
+private data class Team(val slug: String)
 
 @Serializable
 private data class DeployGqlResponse(val data: DeployGqlResponseData)
@@ -149,12 +153,9 @@ private data class DeployGqlResponseData(val deployments: DeployResponse)
 private data class DeployResponse(val nodes: List<Deploy>, val pageInfo: PageInfo)
 
 @Serializable
-private data class Deploy(val repository: String, val statuses: List<DeployStatus>)
-
-@Serializable
-private data class DeployStatus(
-    val status: String,
-    @Serializable(with = ZonedDateTimeSerializer::class) val created: ZonedDateTime
+private data class Deploy(
+    val repository: String,
+    @Serializable(with = ZonedDateTimeSerializer::class) val created: ZonedDateTime,
 )
 
 private data class RepoDeploymentStatus(
