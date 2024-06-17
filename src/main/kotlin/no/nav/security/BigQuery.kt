@@ -32,15 +32,18 @@ class BigQuery(projectID: String) {
             Field.of("vulnerabilityAlertsEnabled", StandardSQLTypeName.BOOL),
             Field.of("vulnerabilityCount", StandardSQLTypeName.INT64),
             Field.of("isArchived", StandardSQLTypeName.BOOL),
-            Field.of("productArea", StandardSQLTypeName.STRING)
+            Field.of("productArea", StandardSQLTypeName.STRING),
+            Field.of("isDeployed", StandardSQLTypeName.BOOL),
+            Field.of("deployDateTime", StandardSQLTypeName.DATETIME)
         )
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
-        val rows = records.map {
+        val rows = records.map { it ->
             // Github DateTime format: 2024-01-31T12:06:05Z
             val lastPush = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+            val deployDateTime = it.deployDate?.let { deployDate -> Instant.parse(deployDate).atZone(ZoneId.systemDefault()).toLocalDateTime().toString() }
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "owners" to it.owners,
@@ -49,7 +52,9 @@ class BigQuery(projectID: String) {
                 "vulnerabilityAlertsEnabled" to it.vulnerabilityAlertsEnabled,
                 "vulnerabilityCount" to it.vulnerabilityCount,
                 "isArchived" to it.isArchived,
-                "productArea" to it.productArea
+                "productArea" to it.productArea,
+                "isDeployed" to it.isDeployed,
+                "deployDateTime" to deployDateTime
             ))
         }
 
@@ -85,5 +90,7 @@ class IssueCountRecord(
     val vulnerabilityAlertsEnabled: Boolean,
     val vulnerabilityCount: Int,
     val isArchived: Boolean,
-    var productArea: String?
+    var productArea: String?,
+    var isDeployed: Boolean = false,
+    var deployDate: DateTime? = null
 )

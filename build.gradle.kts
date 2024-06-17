@@ -7,6 +7,7 @@ val ktorVersion = "2.3.11"
 val logbackVersion = "1.5.6"
 val logstashEncoderVersion = "7.4"
 val bigQueryClientVersion = "2.40.3"
+val kotlinxDatetimeVersion = "0.6.0"
 
 val expediaGraphQlVersion = "7.1.1"
 
@@ -36,6 +37,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio-jvm:$ktorVersion")
     implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
 
     implementation("com.expediagroup:graphql-kotlin-ktor-client:$expediaGraphQlVersion")
 

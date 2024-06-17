@@ -20,10 +20,7 @@ fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-    val slack = Slack(httpClient = httpClient(null), requiredFromEnv("SLACK_WEBHOOK"))
-    /*val teamkatalogAccessToken = EntraTokenProvider(
-        scope = "api://prod-gcp.org.team-catalog-backend/.default", client = httpClient("yolo")
-    ).getClientCredentialToken()*/
+    val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
     logger.info("Looking for GitHub repos")
@@ -34,6 +31,11 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
+    try {
+        naisApi.updateRecordsWithDeploymentStatus(repositoryWithOwners)
+    } catch (e: Exception) {
+        logger.info("Klarte ikke å oppdatere deploy status for repoer: ${e.message}")
+    }
 
     bq.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
@@ -58,7 +60,6 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
             ignoreUnknownKeys = true
         })
     }
-
     defaultRequest {
         headers {
             header(HttpHeaders.Accept, ContentType.Application.Json)
