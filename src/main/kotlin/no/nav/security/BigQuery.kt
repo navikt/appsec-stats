@@ -43,7 +43,6 @@ class BigQuery(projectID: String) {
         val rows = records.map { it ->
             // Github DateTime format: 2024-01-31T12:06:05Z
             val lastPush = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
-            val deployDateTime = it.deployDate?.let { deployDate -> Instant.parse(deployDate).atZone(ZoneId.systemDefault()).toLocalDateTime().toString() }
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "owners" to it.owners,
@@ -54,7 +53,7 @@ class BigQuery(projectID: String) {
                 "isArchived" to it.isArchived,
                 "productArea" to it.productArea,
                 "isDeployed" to it.isDeployed,
-                "deployDateTime" to deployDateTime
+                "deployDateTime" to it.deployDate
             ))
         }
 

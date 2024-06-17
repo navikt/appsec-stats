@@ -11,6 +11,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.time.Instant
+import java.time.ZoneId
 
 class NaisApiTest {
 
@@ -48,16 +50,25 @@ class NaisApiTest {
         val naisApi = NaisApi(httpClient)
         val repositories = listOf(
             IssueCountRecord(listOf("owner1"), null, "foo", true, 1, false, null),
-            IssueCountRecord(listOf("owner2"), null, "bar", true, 1, false, null)
+            IssueCountRecord(listOf("owner2"), null, "bar", true, 1, false, null),
+            IssueCountRecord(listOf("owner3"), null, "appsec", true, 1, false, null)
         )
 
         naisApi.updateRecordsWithDeploymentStatus(repositories)
 
+        assertEquals(3, repositories.size)
+
         assertEquals(false, repositories[0].isDeployed)
         assertEquals(null, repositories[0].deployDate)
+        assertEquals("foo", repositories[0].repositoryName)
 
         assertEquals(true, repositories[1].isDeployed)
-        assertEquals("2024-06-13T09:17:33.396884", repositories[1].deployDate)
+        val expectedDate = Instant.parse("2024-06-13T09:17:33.396884Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
+        assertEquals(expectedDate, repositories[1].deployDate)
+        assertEquals("bar", repositories[1].repositoryName)
+
+        assertEquals(true, repositories[2].isDeployed)
+        assertEquals("appsec", repositories[2].repositoryName)
     }
 
     companion object {
@@ -102,6 +113,35 @@ class NaisApiTest {
                     },
                     {
                       "repository":"appsec/appsec",
+                      "statuses":[
+                        {
+                          "created":"2024-06-13T09:17:18.633794Z",
+                          "status":"success"
+                        },
+                        {
+                          "created":"2024-06-13T09:17:07.999223Z",
+                          "status":"in_progress"
+                        },
+                        {
+                          "created":"2024-06-13T09:16:46.525771Z",
+                          "status":"success"
+                        },
+                        {
+                          "created":"2024-06-13T09:16:46.394207Z",
+                          "status":"in_progress"
+                        },
+                        {
+                          "created":"2024-06-13T09:16:42.928174Z",
+                          "status":"success"
+                        },
+                        {
+                          "created":"2024-06-13T09:16:42.824505Z",
+                          "status":"queued"
+                        }
+                      ]
+                    },
+                    {
+                      "repository":"appsec/definitelynotappsec",
                       "statuses":[
                         {
                           "created":"2024-06-13T09:17:18.633794Z",

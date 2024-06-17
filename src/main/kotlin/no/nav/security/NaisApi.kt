@@ -8,7 +8,9 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Serializer
 import kotlinx.serialization.encoding.Decoder
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -77,7 +79,9 @@ class NaisApi(private val http: HttpClient) {
                     RepoDeploymentStatus(
                         deployment.repository.substringAfter("/"),
                         latestDeploy?.status == "success",
-                        latestDeploy?.created?.toLocalDateTime()
+                        latestDeploy?.created?.let { zonedDateTime ->
+                            Instant.parse(zonedDateTime.toString()).atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        }
                     )
                 )
             }
@@ -104,7 +108,7 @@ class NaisApi(private val http: HttpClient) {
                       } 
                   }"""
         val reqBody = RequestBody(queryString.replace("\n", " "),
-            Variables(null, offset, 100)
+            Variables(null, offset, null)
         )
 
         return http.post(baseUrl) { setBody(reqBody) }.body<DeployGqlResponse>()
@@ -112,7 +116,7 @@ class NaisApi(private val http: HttpClient) {
 }
 
 @Serializable
-private data class Variables(val filter: Filter?, val offset: Int, val limit: Int)
+private data class Variables(val filter: Filter?, val offset: Int, val limit: Int?)
 
 @Serializable
 private data class Filter(val github: GitHubFilter)
