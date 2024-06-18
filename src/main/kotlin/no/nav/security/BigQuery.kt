@@ -11,6 +11,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.*
 
@@ -84,12 +85,12 @@ class BigQuery(projectID: String) {
 
 class IssueCountRecord(
     val owners: List<String>,
-    val lastPush: DateTime?,
+    val lastPush: String?,
     val repositoryName: String,
     val vulnerabilityAlertsEnabled: Boolean,
     val vulnerabilityCount: Int,
     val isArchived: Boolean,
     var productArea: String?,
     var isDeployed: Boolean = false,
-    var deployDate: DateTime? = null
+    var deployDate: LocalDateTime? = null
 )

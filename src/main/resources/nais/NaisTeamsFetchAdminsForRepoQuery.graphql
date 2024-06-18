@@ -1,0 +1,10 @@
+query ($filter: TeamsFilter, $offset: Int, $limit: Int) {
+  teams(filter: $filter, offset: $offset, limit: $limit) {
+    nodes {
+      slug
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}

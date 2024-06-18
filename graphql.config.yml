@@ -1,2 +1,3 @@
 schema:
   - https://api.github.com/graphql
+  - https://console.nav.cloud.nais.io/query

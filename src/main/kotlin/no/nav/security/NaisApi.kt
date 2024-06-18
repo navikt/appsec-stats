@@ -1,21 +1,21 @@
 package no.nav.security
 
+import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
+import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Serializer
-import kotlinx.serialization.encoding.Decoder
+import no.nav.security.inputs.TeamsFilter
+import no.nav.security.inputs.TeamsFilterGitHub
+import java.net.URI
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 
-class NaisApi(private val http: HttpClient) {
+class NaisApi(private val httpClient: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
+    private val client = GraphQLKtorClient(
+        url = URI(baseUrl).toURL(),
+        httpClient = httpClient
+    )
 
     suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
         var iterations = 0
@@ -38,43 +38,30 @@ class NaisApi(private val http: HttpClient) {
         return result
     }
 
+    private suspend fun adminsFor(repoName: String?): List<String> {
+        val repoFullName = "navikt/$repoName"
+        val ghQuery = NaisTeamsFetchAdminsForRepoQuery(
+            variables = NaisTeamsFetchAdminsForRepoQuery.Variables(
+                filter = TeamsFilter(github = TeamsFilterGitHub(repoFullName, "admin")),
+                offset = 0,
+                limit = 100
+            )
+        )
+        val response: GraphQLClientResponse<NaisTeamsFetchAdminsForRepoQuery.Result> = client.execute(ghQuery)
+        return response.data?.teams?.nodes?.map { it.slug } ?: emptyList()
+    }
+
     suspend fun updateRecordsWithDeploymentStatus(repositories: List<IssueCountRecord>) {
         var deployedApps = 0
         val listOfDeployments = createListOfRepoDeploymentStatus()
         repositories.forEach { record ->
             listOfDeployments.find { deployment -> deployment.repository == record.repositoryName }.let {
-                record.isDeployed = it?.deployed ?: false
-                record.deployDate = it?.created?.toString()
+                record.isDeployed = true
+                record.deployDate = it?.created
+                deployedApps++
             }
-            if (record.isDeployed) deployedApps++
         }
         logger.info("Found $deployedApps deployed apps")
-    }
-
-    private suspend fun adminsFor(repoName: String?): List<String> {
-        val repoFullName = "navikt/$repoName"
-        val response = fetchTeamWithAdminForRepo(repoFullName, 0)
-
-        return response.data.teams.nodes.map { it.slug }
-    }
-
-    private suspend fun fetchTeamWithAdminForRepo(repoFullName: String, offset: Int): TeamsGqlResponse {
-        val queryString = """query(${"$"}filter: TeamsFilter, ${"$"}offset: Int, ${"$"}limit: Int) {
-                      teams(filter: ${"$"}filter, offset: ${"$"}offset, limit: ${"$"}limit) {
-                          nodes {
-                              slug 
-                          }
-                          pageInfo{ 
-                              hasNextPage 
-                          } 
-                      }
-                  }"""
-        val reqBody = RequestBody(
-            queryString.replace("\n", " "),
-            Variables(Filter(GitHubFilter(repoFullName, "admin")), offset, 100)
-        )
-
-        return http.post(baseUrl) { setBody(reqBody) }.body<TeamsGqlResponse>()
     }
 
     private suspend fun createListOfRepoDeploymentStatus(): List<RepoDeploymentStatus> {
@@ -82,101 +69,44 @@ class NaisApi(private val http: HttpClient) {
         var offset = 0
         do {
             logger.info("looking for deployments at offset $offset")
-            val response = fetchActiveDeploymentsWithRepo(offset)
-            response.data.deployments.nodes.forEach { deployment ->
-                deployments.add(
-                    RepoDeploymentStatus(
-                        deployment.repository.substringAfter("/"),
-                        true,
-                        Instant.parse(deployment.created.toString()).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                    )
-                )
+            var deployOffset = 0
+            val ghQuery = NaisTeamsDeploymentsQuery.Variables(
+                teamOffset = offset,
+                teamLimit = 100,
+                deployOffset = deployOffset,
+                deployLimit = 100
+            )
+            var response: GraphQLClientResponse<NaisTeamsDeploymentsQuery.Result> =
+                client.execute(NaisTeamsDeploymentsQuery(ghQuery))
+            response.data?.teams?.nodes?.map { team ->
+                // Check if current team has more than 100 deployments, if so, iterate through all deployments
+                if(team.deployments.pageInfo.hasNextPage) {
+                    do {
+                        response.data?.teams?.nodes?.map { teamLoop ->
+                            teamLoop.deployments.nodes.map { deployment ->
+                                val created = Instant.parse(deployment.created).atZone(ZoneId.systemDefault()).toLocalDateTime()
+                                deployments.add(RepoDeploymentStatus(deployment.repository, created))
+                            }
+                        }
+                        deployOffset += 100
+                        response = client.execute(NaisTeamsDeploymentsQuery(ghQuery))
+                    } while (response.data?.teams?.pageInfo?.hasNextPage == true)
+                // If team has less than 100 deployments, add them to the list
+                } else {
+                    team.deployments.nodes.map { deployment ->
+                        val created = Instant.parse(deployment.created).atZone(ZoneId.systemDefault()).toLocalDateTime()
+                        deployments.add(RepoDeploymentStatus(deployment.repository.substringAfter("/"), created))
+                    }
+                }
             }
-
             offset += 100
-        } while (response.data.deployments.pageInfo.hasNextPage)
-        return deployments
-    }
-
-    private suspend fun fetchActiveDeploymentsWithRepo(offset: Int): DeployGqlResponse {
-        val queryString = """query(${"$"}offset: Int, ${"$"}limit: Int) { 
-                      deployments(offset: ${"$"}offset, limit: ${"$"}limit) { 
-                        nodes {
-                          repository
-                          created
-                        }
-                        pageInfo {
-                          hasNextPage
-                        }
-                      } 
-                  }"""
-        val reqBody = RequestBody(
-            queryString.replace("\n", " "),
-            Variables(null, offset, null)
-        )
-
-        return http.post(baseUrl) { setBody(reqBody) }.body<DeployGqlResponse>()
+        } while (response.data?.teams?.pageInfo?.hasNextPage == true)
+        logger.info("NAIS returned ${deployments.size} deployments")
+        return deployments.distinctBy { it.repository }
     }
 }
-
-@Serializable
-private data class Variables(val filter: Filter?, val offset: Int, val limit: Int?)
-
-@Serializable
-private data class Filter(val github: GitHubFilter)
-
-@Serializable
-private data class GitHubFilter(val repoName: String, val permissionName: String)
-
-@Serializable
-private data class RequestBody(val query: String, val variables: Variables)
-
-@Serializable
-private data class TeamsGqlResponse(val data: TeamsGqlResponseData)
-
-@Serializable
-private data class TeamsGqlResponseData(val teams: TeamsResponse)
-
-@Serializable
-private data class TeamsResponse(val nodes: List<Team>, val pageInfo: PageInfo)
-
-@Serializable
-private data class Team(val slug: String)
-
-@Serializable
-private data class DeployGqlResponse(val data: DeployGqlResponseData)
-
-@Serializable
-private data class DeployGqlResponseData(val deployments: DeployResponse)
-
-@Serializable
-private data class DeployResponse(val nodes: List<Deploy>, val pageInfo: PageInfo)
-
-@Serializable
-private data class Deploy(
-    val repository: String,
-    @Serializable(with = ZonedDateTimeSerializer::class) val created: ZonedDateTime,
-)
 
 private data class RepoDeploymentStatus(
     val repository: String,
-    val deployed: Boolean,
-    val created: LocalDateTime?
+    val created: LocalDateTime
 )
-
-@Serializable
-private data class PageInfo(val hasNextPage: Boolean)
-
-@OptIn(ExperimentalSerializationApi::class)
-@Serializer(forClass = ZonedDateTime::class)
-object ZonedDateTimeSerializer : KSerializer<ZonedDateTime> {
-    private val formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME
-
-    override fun deserialize(decoder: Decoder): ZonedDateTime {
-        return ZonedDateTime.parse(decoder.decodeString(), formatter)
-    }
-
-    override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: ZonedDateTime) {
-        encoder.encodeString(value.format(formatter))
-    }
-}
