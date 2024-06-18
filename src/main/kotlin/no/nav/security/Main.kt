@@ -19,7 +19,7 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
-    val naisApi = NaisApi(http = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
+    val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 

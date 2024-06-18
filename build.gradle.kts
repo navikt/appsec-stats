@@ -1,5 +1,5 @@
+import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
-import com.expediagroup.graphql.plugin.gradle.graphql
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
@@ -52,22 +52,25 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 }
 
-graphql {
-    client {
-        packageName = "no.nav.security"
-        serializer = GraphQLSerializer.KOTLINX
-        schemaFile = file("${project.projectDir}/src/main/resources/github.graphql")
-        queryFiles = listOf(file("${project.projectDir}/src/main/resources/FetchGithubRepositoriesQuery.graphql"))
-        parserOptions {
-            maxCharacters = 2048576
-            maxTokens = 100000
-        }
-    }
-}
-
 val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
     packageName.set("no.nav.security")
-    schemaFile.set(file("${project.projectDir}/src/main/resources/github.graphql"))
+    schemaFile.set(file("${project.projectDir}/src/main/resources/github/schema.graphql"))
+    queryFiles.from("${project.projectDir}/src/main/resources/github/FetchGithubRepositoriesQuery.graphql")
+    parserOptions.assign(GraphQLParserOptions(maxTokens = 100000, maxCharacters = 2048576))
+    serializer.set(GraphQLSerializer.KOTLINX)
+}
+
+val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::class) {
+    packageName.set("no.nav.security")
+    schemaFile.set(file("${project.projectDir}/src/main/resources/nais/schema.graphql"))
+    queryFiles.from(listOf(file("${project.projectDir}/src/main/resources/nais/NaisTeamsDeploymentsQuery.graphql")))
+    serializer.set(GraphQLSerializer.KOTLINX)
+}
+
+val graphqlGenerateThirdClient by tasks.creating(GraphQLGenerateClientTask::class) {
+    packageName.set("no.nav.security")
+    schemaFile.set(file("${project.projectDir}/src/main/resources/nais/schema.graphql"))
+    queryFiles.from(listOf(file("${project.projectDir}/src/main/resources/nais/NaisTeamsFetchAdminsForRepoQuery.graphql")))
     serializer.set(GraphQLSerializer.KOTLINX)
 }
 

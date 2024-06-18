@@ -59,12 +59,12 @@ class NaisApiTest {
 
         assertEquals(3, repositories.size)
 
-        assertEquals(false, repositories[0].isDeployed)
+        assertEquals(true, repositories[0].isDeployed)
         assertEquals(null, repositories[0].deployDate)
         assertEquals("foo", repositories[0].repositoryName)
 
         assertEquals(true, repositories[1].isDeployed)
-        val expectedDate = Instant.parse("2024-06-13T09:17:33.396658Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
+        val expectedDate = Instant.parse("2024-06-13T14:00:46.313669Z").atZone(ZoneId.systemDefault()).toLocalDateTime()
         assertEquals(expectedDate, repositories[1].deployDate)
         assertEquals("bar", repositories[1].repositoryName)
 
@@ -75,24 +75,62 @@ class NaisApiTest {
     companion object {
         private val mockResponse = """
             {
-              "data":{
-                "deployments":{
-                  "nodes":[
+              "data": {
+                "teams": {
+                  "nodes": [
                     {
-                      "repository":"appsec/bar",
-                      "created":"2024-06-13T09:17:33.396658Z"
+                      "deployments": {
+                        "nodes": [],
+                        "pageInfo": {
+                          "hasNextPage": false
+                        }
+                      }
                     },
                     {
-                      "repository":"appsec/appsec",
-                      "created":"2024-06-13T09:17:18.633794Z"
+                      "deployments": {
+                        "nodes": [
+                          {
+                            "created": "2024-01-23T14:42:33.66081Z",
+                            "repository": "appsec/appsec"
+                          },
+                          {
+                            "created": "2024-01-23T14:42:33.063166Z",
+                            "repository": "appsec/appsec"
+                          }
+                        ],
+                        "pageInfo": {
+                          "hasNextPage": false
+                        }
+                      }
                     },
                     {
-                      "repository":"appsec/definitelynotappsec",
-                      "created":"2024-06-13T09:16:42.824505Z"
+                      "deployments": {
+                        "nodes": [
+                          {
+                            "created": "2024-06-13T14:00:46.313669Z",
+                            "repository": "appsec/bar"
+                          },
+                          {
+                            "created": "2023-06-13T14:00:43.914572Z",
+                            "repository": "appsec/bar"
+                          }
+                        ],
+                        "pageInfo": {
+                          "hasNextPage": false
+                        }
+                      }
+                    },
+                    {
+                      "deployments": {
+                        "nodes": [],
+                        "pageInfo": {
+                          "hasNextPage": false
+                        }
+                      }
                     }
                   ],
-                  "pageInfo":{
-                    "hasNextPage":false
+                  "pageInfo": {
+                    "hasNextPage": false
                   }
                 }
               }
