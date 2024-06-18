@@ -1,0 +1,19 @@
+query ($filter: TeamsFilter, $offset: Int, $limit: Int, $deployOffset: Int, $deployLimit: Int) {
+  teams(filter: $filter, offset: $offset, limit: $limit) {
+    nodes {
+      slug
+      deployments(offset: $deployOffset, limit: $deployLimit) {
+          nodes {
+            created
+            env
+          }
+          pageInfo {
+            hasNextPage
+          }
+        }
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}

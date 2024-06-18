@@ -27,15 +27,10 @@ fun main(): Unit = runBlocking {
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
-    val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
+    val repositoryWithOwners = naisApi.adminAndDeployInfoFor(githubRepositories)
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
-    try {
-        naisApi.updateRecordsWithDeploymentStatus(repositoryWithOwners)
-    } catch (e: Exception) {
-        logger.info("Klarte ikke å oppdatere deploy status for repoer: ${e.message}")
-    }
 
     bq.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },

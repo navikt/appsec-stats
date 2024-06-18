@@ -50,26 +50,17 @@ class NaisApiTest {
 
         val naisApi = NaisApi(httpClient)
         val repositories = listOf(
-            IssueCountRecord(listOf("owner1"), null, "foo", true, 1, false, null),
-            IssueCountRecord(listOf("owner2"), null, "bar", true, 1, false, null),
-            IssueCountRecord(listOf("owner3"), null, "appsec", true, 1, false, null)
+            GithubRepository(id = "3", name = "appsec", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
         )
 
-        naisApi.updateRecordsWithDeploymentStatus(repositories)
+        val repos = naisApi.adminAndDeployInfoFor(repositories)
 
-        assertEquals(3, repositories.size)
+        assertEquals(1, repos.size)
 
-        assertEquals(true, repositories[0].isDeployed)
-        assertEquals(null, repositories[0].deployDate)
-        assertEquals("foo", repositories[0].repositoryName)
-
-        assertEquals(true, repositories[1].isDeployed)
+        assertEquals(true, repos[0].isDeployed)
         val expectedDate = Instant.parse("2024-06-13T14:00:46.313669Z").atZone(ZoneId.systemDefault()).toLocalDateTime()
-        assertEquals(expectedDate, repositories[1].deployDate)
-        assertEquals("bar", repositories[1].repositoryName)
-
-        assertEquals(true, repositories[2].isDeployed)
-        assertEquals("appsec", repositories[2].repositoryName)
+        assertEquals(expectedDate, repos[0].deployDate)
+        assertEquals("appsec", repos[0].repositoryName)
     }
 
     companion object {
@@ -79,6 +70,7 @@ class NaisApiTest {
                 "teams": {
                   "nodes": [
                     {
+                      "slug": "foo",
                       "deployments": {
                         "nodes": [],
                         "pageInfo": {
@@ -87,15 +79,18 @@ class NaisApiTest {
                       }
                     },
                     {
+                      "slug": "appsec",
                       "deployments": {
                         "nodes": [
                           {
-                            "created": "2024-01-23T14:42:33.66081Z",
-                            "repository": "appsec/appsec"
+                            "created": "2024-01-24T14:42:33.66081Z",
+                            "repository": "appsec/bar"
+                            "env": "prod-abc"
                           },
                           {
                             "created": "2024-01-23T14:42:33.063166Z",
-                            "repository": "appsec/appsec"
+                            "repository": "appsec/bar"
+                            "env": "prod-abc"
                           }
                         ],
                         "pageInfo": {
@@ -104,15 +99,18 @@ class NaisApiTest {
                       }
                     },
                     {
+                      "slug": "bar",
                       "deployments": {
                         "nodes": [
                           {
                             "created": "2024-06-13T14:00:46.313669Z",
-                            "repository": "appsec/bar"
+                            "repository": "appsec/bar",
+                            "env": "prod-abc"
                           },
                           {
                             "created": "2023-06-13T14:00:43.914572Z",
                             "repository": "appsec/bar"
+                            "env": "prod-abc"
                           }
                         ],
                         "pageInfo": {
@@ -121,6 +119,7 @@ class NaisApiTest {
                       }
                     },
                     {
+                      "slug": "meepmeep",
                       "deployments": {
                         "nodes": [],
                         "pageInfo": {

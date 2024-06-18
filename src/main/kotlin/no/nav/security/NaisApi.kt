@@ -17,96 +17,64 @@ class NaisApi(private val httpClient: HttpClient) {
         httpClient = httpClient
     )
 
-    suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
+    suspend fun adminAndDeployInfoFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
         var iterations = 0
         val result = repositories.map {
             iterations++
             if (iterations % 100 == 0) {
                 logger.info("Fetched $iterations repo owners from NAIS API")
             }
+            val naisInfo = fetchAdminAndDeployInfoFor(it.name)
             IssueCountRecord(
-                owners = adminsFor(it.name),
+                owners = naisInfo.admins,
                 lastPush = it.pushedAt,
                 repositoryName = it.name,
                 vulnerabilityAlertsEnabled = it.hasVulnerabilityAlertsEnabled,
                 vulnerabilityCount = it.vulnerabilityAlerts,
                 isArchived = it.isArchived,
-                productArea = null
+                productArea = null,
+                isDeployed = naisInfo.isDeployed,
+                deployDate = naisInfo.deployDate
             )
         }
 
         return result
     }
 
-    private suspend fun adminsFor(repoName: String?): List<String> {
+    private data class NaisRepoInfo(
+        val admins: List<String>,
+        val isDeployed: Boolean,
+        val isDeployedToProd: Boolean,
+        val deployDate: LocalDateTime?
+    )
+
+    private suspend fun fetchAdminAndDeployInfoFor(repoName: String?): NaisRepoInfo {
         val repoFullName = "navikt/$repoName"
-        val ghQuery = NaisTeamsFetchAdminsForRepoQuery(
-            variables = NaisTeamsFetchAdminsForRepoQuery.Variables(
-                filter = TeamsFilter(github = TeamsFilterGitHub(repoFullName, "admin")),
+        val ghQuery = NaisTeamsFetchAdminsAndDeploysQuery(
+            variables = NaisTeamsFetchAdminsAndDeploysQuery.Variables(
+                filter = TeamsFilter(github = TeamsFilterGitHub(repoName = repoFullName, permissionName = "admin")),
                 offset = 0,
-                limit = 100
+                limit = 100,
+                deployLimit = 100,
+                deployOffset = 0
             )
         )
-        val response: GraphQLClientResponse<NaisTeamsFetchAdminsForRepoQuery.Result> = client.execute(ghQuery)
-        return response.data?.teams?.nodes?.map { it.slug } ?: emptyList()
-    }
+        val response: GraphQLClientResponse<NaisTeamsFetchAdminsAndDeploysQuery.Result> = client.execute(ghQuery)
+        val teamsList = response.data?.teams?.nodes ?: emptyList()
+        val isDeployed = teamsList.map { team -> team.deployments.nodes.isNotEmpty() }.any { it }
+        val isDeployedToProd = teamsList.map { team -> team.deployments.nodes.any { it.env.contains("prod") } }.isNotEmpty()
+        val owners = teamsList.map { it.slug.toString() }
+        // Loop through teams, map created date from all deployments and fetch the latest one.
+        val deployDate = teamsList.map { team ->
+            team.deployments.nodes.map { it.created }
+        }.flatten().maxOrNull()?.let { Instant.parse(it).atZone(ZoneId.systemDefault()).toLocalDateTime() }
 
-    suspend fun updateRecordsWithDeploymentStatus(repositories: List<IssueCountRecord>) {
-        var deployedApps = 0
-        val listOfDeployments = createListOfRepoDeploymentStatus()
-        repositories.forEach { record ->
-            listOfDeployments.find { deployment -> deployment.repository == record.repositoryName }.let {
-                record.isDeployed = true
-                record.deployDate = it?.created
-                deployedApps++
-            }
-        }
-        logger.info("Found $deployedApps deployed apps")
-    }
+        return NaisRepoInfo(
+            admins = owners,
+            isDeployedToProd = isDeployedToProd,
+            isDeployed = isDeployed,
+            deployDate = deployDate
+        )
 
-    private suspend fun createListOfRepoDeploymentStatus(): List<RepoDeploymentStatus> {
-        val deployments = mutableListOf<RepoDeploymentStatus>()
-        var offset = 0
-        do {
-            logger.info("looking for deployments at offset $offset")
-            var deployOffset = 0
-            val ghQuery = NaisTeamsDeploymentsQuery.Variables(
-                teamOffset = offset,
-                teamLimit = 100,
-                deployOffset = deployOffset,
-                deployLimit = 100
-            )
-            var response: GraphQLClientResponse<NaisTeamsDeploymentsQuery.Result> =
-                client.execute(NaisTeamsDeploymentsQuery(ghQuery))
-            response.data?.teams?.nodes?.map { team ->
-                // Check if current team has more than 100 deployments, if so, iterate through all deployments
-                if(team.deployments.pageInfo.hasNextPage) {
-                    do {
-                        response.data?.teams?.nodes?.map { teamLoop ->
-                            teamLoop.deployments.nodes.map { deployment ->
-                                val created = Instant.parse(deployment.created).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                                deployments.add(RepoDeploymentStatus(deployment.repository, created))
-                            }
-                        }
-                        deployOffset += 100
-                        response = client.execute(NaisTeamsDeploymentsQuery(ghQuery))
-                    } while (response.data?.teams?.pageInfo?.hasNextPage == true)
-                // If team has less than 100 deployments, add them to the list
-                } else {
-                    team.deployments.nodes.map { deployment ->
-                        val created = Instant.parse(deployment.created).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                        deployments.add(RepoDeploymentStatus(deployment.repository.substringAfter("/"), created))
-                    }
-                }
-            }
-            offset += 100
-        } while (response.data?.teams?.pageInfo?.hasNextPage == true)
-        logger.info("NAIS returned ${deployments.size} deployments")
-        return deployments.distinctBy { it.repository }
     }
 }
-
-private data class RepoDeploymentStatus(
-    val repository: String,
-    val created: LocalDateTime
-)
