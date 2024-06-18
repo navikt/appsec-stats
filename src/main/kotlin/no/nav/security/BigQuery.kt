@@ -92,5 +92,5 @@ class IssueCountRecord(
     val isArchived: Boolean,
     var productArea: String?,
     var isDeployed: Boolean = false,
-    var deployDate: LocalDateTime? = null
+    var deployDate: String? = null
 )

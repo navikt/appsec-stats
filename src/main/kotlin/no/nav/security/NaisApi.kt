@@ -34,7 +34,7 @@ class NaisApi(private val httpClient: HttpClient) {
                 isArchived = it.isArchived,
                 productArea = null,
                 isDeployed = naisInfo.isDeployed,
-                deployDate = naisInfo.deployDate
+                deployDate = naisInfo.deployDate?.let { it.toString() }
             )
         }
 
