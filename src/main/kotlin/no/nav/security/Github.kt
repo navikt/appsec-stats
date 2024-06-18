@@ -49,4 +49,3 @@ class GitHub(
 
 typealias DateTime = String
 typealias ID = String
-typealias Time = String
