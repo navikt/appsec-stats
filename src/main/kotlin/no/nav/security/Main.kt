@@ -28,7 +28,7 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
     val repositoryWithOwners = naisApi.adminAndDeployInfoFor(githubRepositories)
-    logger.info("Fetched ${repositoryWithOwners.size} repo owners & ${repositoryWithOwners.filter { it.isDeployed }.size} deployed applications from NAIS API")
+    logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 

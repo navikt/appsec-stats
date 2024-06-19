@@ -59,15 +59,10 @@ class NaisApiTest {
 
         assertEquals(3, repos.size)
 
-        assertEquals(true, repos[0].isDeployed)
-        val expectedDate = Instant.parse("2024-01-24T14:42:33.66081Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
-        assertEquals(expectedDate, repos[0].deployDate)
         assertEquals(4, repos[0].owners.size) // Query only returns teams with admin access to repo
         assertEquals("appsec", repos[0].repositoryName)
 
         assertEquals("foo", repos[1].repositoryName)
-        assertEquals(false, repos[1].isDeployed)
-        assertEquals(null, repos[1].deployDate)
     }
 
     companion object {
