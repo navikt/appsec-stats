@@ -1,11 +1,12 @@
-query ($filter: TeamsFilter, $offset: Int, $limit: Int, $deployOffset: Int, $deployLimit: Int) {
-  teams(filter: $filter, offset: $offset, limit: $limit) {
+query ($filter: TeamsFilter, $deployOffset: Int, $deployLimit: Int) {
+  teams(filter: $filter, offset: 0, limit: 100) {
     nodes {
       slug
       deployments(offset: $deployOffset, limit: $deployLimit) {
           nodes {
             created
             env
+            repository
           }
           pageInfo {
             hasNextPage

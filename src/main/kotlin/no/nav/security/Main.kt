@@ -28,7 +28,7 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
     val repositoryWithOwners = naisApi.adminAndDeployInfoFor(githubRepositories)
-    logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
+    logger.info("Fetched ${repositoryWithOwners.size} repo owners & ${repositoryWithOwners.filter { it.isDeployed }.size} deployed applications from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
@@ -37,7 +37,7 @@ fun main(): Unit = runBlocking {
         { ex -> slack.send(
             channel = "appsec-aktivitet",
             heading = "GitHub Security Stats",
-            msg = "Insert to BigQuery failed: ${ex.message}"
+            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
         ) }
     )
 }

@@ -50,17 +50,24 @@ class NaisApiTest {
 
         val naisApi = NaisApi(httpClient)
         val repositories = listOf(
-            GithubRepository(id = "3", name = "appsec", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(id = "1", name = "appsec", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(id = "2", name = "foo", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(id = "3", name = "bar", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
         )
 
         val repos = naisApi.adminAndDeployInfoFor(repositories)
 
-        assertEquals(1, repos.size)
+        assertEquals(3, repos.size)
 
         assertEquals(true, repos[0].isDeployed)
-        val expectedDate = Instant.parse("2024-06-13T14:00:46.313669Z").atZone(ZoneId.systemDefault()).toLocalDateTime()
+        val expectedDate = Instant.parse("2024-01-24T14:42:33.66081Z").atZone(ZoneId.systemDefault()).toLocalDateTime().toString()
         assertEquals(expectedDate, repos[0].deployDate)
+        assertEquals(4, repos[0].owners.size) // Query only returns teams with admin access to repo
         assertEquals("appsec", repos[0].repositoryName)
+
+        assertEquals("foo", repos[1].repositoryName)
+        assertEquals(false, repos[1].isDeployed)
+        assertEquals(null, repos[1].deployDate)
     }
 
     companion object {
@@ -84,12 +91,12 @@ class NaisApiTest {
                         "nodes": [
                           {
                             "created": "2024-01-24T14:42:33.66081Z",
-                            "repository": "appsec/bar"
+                            "repository": "navikt/appsec"
                             "env": "prod-abc"
                           },
                           {
-                            "created": "2024-01-23T14:42:33.063166Z",
-                            "repository": "appsec/bar"
+                            "created": "2023-01-23T14:42:33.063166Z",
+                            "repository": "navikt/appsec"
                             "env": "prod-abc"
                           }
                         ],
@@ -101,18 +108,7 @@ class NaisApiTest {
                     {
                       "slug": "bar",
                       "deployments": {
-                        "nodes": [
-                          {
-                            "created": "2024-06-13T14:00:46.313669Z",
-                            "repository": "appsec/bar",
-                            "env": "prod-abc"
-                          },
-                          {
-                            "created": "2023-06-13T14:00:43.914572Z",
-                            "repository": "appsec/bar"
-                            "env": "prod-abc"
-                          }
-                        ],
+                        "nodes": [],
                         "pageInfo": {
                           "hasNextPage": false
                         }
