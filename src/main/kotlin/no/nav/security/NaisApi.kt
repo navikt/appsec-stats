@@ -73,6 +73,7 @@ class NaisApi(private val httpClient: HttpClient) {
             deployOffset = 0
             do {
                 // Eww: reuse response for first iteration
+                logger.info("Fetching data for team ${team.slug} via repo $repoFullName (offset $deployOffset)")
                 val teamResponse = if(deployOffset == 0) response else {
                     client.execute(NaisTeamsFetchAdminsAndDeploysQuery(
                         variables = NaisTeamsFetchAdminsAndDeploysQuery.Variables(
