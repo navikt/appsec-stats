@@ -37,12 +37,12 @@ class NaisApi(private val httpClient: HttpClient) {
 
     private suspend fun adminFor(repoName: String?): List<String> {
         val repoFullName = "navikt/$repoName"
-        val ghQuery = NaisTeamsFetchAdminsAndDeploysQuery(
-            variables = NaisTeamsFetchAdminsAndDeploysQuery.Variables(
+        val ghQuery = NaisTeamsFetchAdminsQuery(
+            variables = NaisTeamsFetchAdminsQuery.Variables(
                 filter = TeamsFilter(github = TeamsFilterGitHub(repoName = repoFullName, permissionName = "admin")),
             )
         )
-        val response: GraphQLClientResponse<NaisTeamsFetchAdminsAndDeploysQuery.Result> = client.execute(ghQuery)
+        val response: GraphQLClientResponse<NaisTeamsFetchAdminsQuery.Result> = client.execute(ghQuery)
 
         return response.data?.teams?.nodes?.map { it.slug.toString() } ?: emptyList()
     }
