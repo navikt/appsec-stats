@@ -1,23 +1,29 @@
 name: Merge Dependabot PRs
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '0 10 * * *'
+    - cron: 0 2 * * *
+
 permissions:
   contents: write
   pull-requests: write
+  checks: write
+  statuses: read
+
 jobs:
   merge-pullrequests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Dependabot metadata
-        id: metadata
-        uses: dependabot/fetch-metadata@5e5f99653a5b510e8555840e80cbf1514ad4af38 # ratchet:dependabot/fetch-metadata@v2
+      - name: Harden runner
+        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # ratchet:step-security/harden-runner@v2
         with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443 
       - name: merge
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # ratchet:actions/github-script@v7
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major' || steps.metadata.outputs.package-ecosystem == 'github_actions'
+        uses: actions/github-script@v7
         with:
           script: |
             const erFerie = () => {
@@ -45,12 +51,7 @@ jobs:
                 repo: context.repo.repo,
             })
 
-            if (pulls.data.length === 0) {
-                console.log('Ingen PRs funnet -> ingenting å gjøre.');
-                return;
-            }
-
-            const toDager = 2 * 60 * 60 * 24 * 1000 // 2 days
+            const toDager = 2 * 60 * 60 * 1000 // 2 days
             const filtrert = pulls.data
                 .filter((it) => it.state == 'open')
                 .filter((it) => !it.head.repo.fork)
@@ -63,7 +64,8 @@ jobs:
 
                     }
                 })
-                .map(async (it) => {
+
+            const beriket = filtrert.map(async (it) => {
                     const QUERY = `query($owner: String!, $repo: String!, $pull_number: Int!) {
                                           repository(owner: $owner, name:$repo) {
                                             pullRequest(number:$pull_number) {
@@ -95,7 +97,8 @@ jobs:
                     }
                 })
 
-            const allePrs = await Promise.all(filtrert)
+            const allePrs = await Promise.all(beriket)
+
             const mergeablePromise = allePrs
                 .filter((it) => it.checksOk)
                 .map(async (it) => {
@@ -107,7 +110,7 @@ jobs:
                     return {
                         title: it.title,
                         number: it.number,
-                        mergeable: prdata.data.mergeable
+                        mergeable: it.checksOk
                     }
                 })
 
@@ -116,26 +119,17 @@ jobs:
                 .filter((it) => {
                   return it.mergeable;
                 })
-            if (mergeable.length > 0) {
-                const pr = mergeable[0]
-                console.log('Merger PR', pr.title)
-                await github.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
+
+            console.log(`About to merge ${mergeable.length} PRs`)
+              
+            mergeable.forEach(async (pr) => {
+              console.log('Merging PR: ', pr.title)
+              await github.request('PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge', {
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     pull_number: pr.number,
                     merge_method: 'squash'
                 })
-                console.log('Starter main workflow')
+            })
 
-                await github.request(
-                    'POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches',
-                    {
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        workflow_id: 'main.yml',
-                        ref: 'main',
-                    }
-                )
-            } else {
-                console.log('Ingen PRer å merge')
-            }
+          
