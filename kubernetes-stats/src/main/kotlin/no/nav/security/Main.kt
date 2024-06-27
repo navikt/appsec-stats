@@ -18,7 +18,7 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(): Unit = runBlocking {
     val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
+    val slack = Slack(httpClient = httpClient(), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
     val kubernetes = Kubernetes()
 
     val cluster = requiredFromEnv("NAIS_CLUSTER_NAME")
@@ -37,7 +37,7 @@ fun main(): Unit = runBlocking {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-internal fun httpClient(authToken: String?) = HttpClient(CIO) {
+internal fun httpClient() = HttpClient(CIO) {
     expectSuccess = true
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 5)
