@@ -11,7 +11,8 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
-import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 class BigQuery(projectID: String) {
@@ -37,8 +38,9 @@ class BigQuery(projectID: String) {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
         val rows = records.map { it ->
-            // Github DateTime format: 2024-01-31T12:06:05Z
-            val creationTimestamp = Instant.parse(it.creationTimestamp).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+            // Kubernetes DateTime format: Fri, 05 Apr 2024 08:42:18 +0200
+            val formatter = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
+            val creationTimestamp = ZonedDateTime.parse(it.creationTimestamp, formatter).toInstant().toString()
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "creationTimestamp" to creationTimestamp,
