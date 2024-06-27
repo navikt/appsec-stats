@@ -1,0 +1,31 @@
+apiVersion: nais.io/v1
+kind: Naisjob
+metadata:
+  labels:
+    team: appsec
+  name: kubernetes-stats
+  namespace: appsec
+spec:
+  image: "{{ image }}"
+  schedule: "5 22 * * *"
+  ttlSecondsAfterFinished: 300
+  azure:
+    application:
+      enabled: true
+  resources:
+    limits:
+      cpu: "300m"
+      memory: "512Mi"
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+  envFrom:
+    - secret: kubernetes-stats-config
+  gcp:
+    bigQueryDatasets:
+      - name: appsec
+        permission: READWRITE
+  accessPolicy:
+    outbound:
+      external:
+        - host: hooks.slack.com
