@@ -11,7 +11,7 @@ val kotlinxDatetimeVersion = "0.6.0"
 
 val expediaGraphQlVersion = "7.1.1"
 
-val junitJupiterVersion = "5.10.2"
+val junitJupiterVersion = "5.10.3"
 
 val mainClassName = "no.nav.security.MainKt"
 
