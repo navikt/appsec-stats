@@ -1,1 +1,1 @@
-rootProject.name = "appsec-stats"
+include("appsec-stats", "kubernetes-stats")

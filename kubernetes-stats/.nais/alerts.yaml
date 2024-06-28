@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kubernetes-stats
+  namespace: appsec
+spec:
+  groups:
+    - name: appsec
+      rules:
+        - alert: Naisjob failed
+          expr: kube_job_failed{job_name=~"^kubernetes-stats.*", namespace="appsec"} > 0
+          for: 1m
+          annotations:
+            description: Naisjob kubernetes-stats failed
+            consequence: No update to bigquery stats
+            action: "check the logs"
+            summary: |-
+              Notifies if the latest run failed
+          labels:
+            namespace: appsec
+            severity: warning

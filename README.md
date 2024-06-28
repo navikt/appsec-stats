@@ -1,22 +1,9 @@
 # appsec-stats
 
-![workflow](https://github.com/navikt/appsec-stats/actions/workflows/main.yaml/badge.svg)
+![workflow](https://github.com/navikt/appsec-stats/actions/workflows/deploy-appsec-stats.yaml/badge.svg)
+![workflow](https://github.com/navikt/appsec-stats/actions/workflows/deploy-kubernetes-stats.yaml/badge.svg)
 
-Creates a ["Dataprodukt"](https://docs.knada.io/dataprodukter/dataprodukt/) with some security related stats such as Github Advanced Security stats.
-
-## ⌨️ Usage
-Run as a [Naisjob](https://doc.nais.io/explanation/workloads/job/?h=job)
-
-### Lokal kjøring
-Sett opp env:
-
-* GCP_TEAM_PROJECT_ID=appsec
-* GITHUB_TOKEN=GITHUB_PAT_TOKEN
-* SLACK_WEBHOOK=slack
-* NAIS_API_TOKEN=verynais
-
-Kjør:
-no.nav.security.MainKt
+Creates multiple ["Dataprodukter"](https://docs.knada.io/dataprodukter/dataprodukt/) with security related stats fetched from various sources.
 
 ## ⚖️ License
 [MIT](LICENSE).
