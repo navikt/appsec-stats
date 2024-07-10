@@ -39,7 +39,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
             Field.of("deployDateTime", StandardSQLTypeName.DATETIME)
         )
 
-    private val deploymentQuery = """SELECT cluster,application,max(deployTime) as latest_deploy
+    private val deploymentQuery = """SELECT cluster,namespace,application,max(deployTime) as latest_deploy
             FROM `$naisAnalyseProjectId.deploys.from_devrapid_unique`
             group by cluster, application
     """
