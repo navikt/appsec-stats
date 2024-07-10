@@ -4,6 +4,8 @@ import com.google.cloud.bigquery.BigQueryOptions
 import com.google.cloud.bigquery.Field
 import com.google.cloud.bigquery.InsertAllRequest
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert
+import com.google.cloud.bigquery.JobInfo
+import com.google.cloud.bigquery.QueryJobConfiguration
 import com.google.cloud.bigquery.Schema
 import com.google.cloud.bigquery.StandardSQLTypeName
 import com.google.cloud.bigquery.StandardTableDefinition
@@ -11,12 +13,11 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.*
+import java.util.UUID
 
 
-class BigQuery(projectID: String) {
+class BigQuery(projectID: String, naisAnalyseProjectId: String) {
     private val bq = BigQueryOptions.newBuilder()
         .setProjectId(projectID)
         .build()
@@ -37,6 +38,11 @@ class BigQuery(projectID: String) {
             Field.of("isDeployed", StandardSQLTypeName.BOOL),
             Field.of("deployDateTime", StandardSQLTypeName.DATETIME)
         )
+
+    private val deploymentQuery = """SELECT cluster,application,max(deployTime) as latest_deploy
+            FROM `$naisAnalyseProjectId.deploys.from_devrapid_unique`
+            group by cluster, application
+    """
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
         createOrUpdateTableSchema()
@@ -68,6 +74,23 @@ class BigQuery(projectID: String) {
         records.size
     }
 
+    fun readDeployments(): Result<List<Deployment>> = runCatching {
+        val queryConfig = QueryJobConfiguration
+            .newBuilder(deploymentQuery).build()
+        val job = bq.create(JobInfo.newBuilder(queryConfig).build()).waitFor()
+        if (job == null || job.status.error != null) {
+            throw Exception("BigQuery: ${job?.status?.error ?: "unknown error"}")
+        }
+        val result = job.getQueryResults()
+        result.iterateAll().map { row ->
+            Deployment(row["cluster"].stringValue,
+                row["namespace"].stringValue,
+                row["application"].stringValue,
+                row["latest_deploy"].timestampInstant
+            )
+        }
+    }
+
     private fun createOrUpdateTableSchema() {
         val tableId = TableId.of(datasetName, tableName)
         val table = bq.getTable(tableId)
@@ -93,4 +116,11 @@ class IssueCountRecord(
     var productArea: String?,
     var isDeployed: Boolean = false,
     var deployDate: String? = null
+)
+
+class Deployment(
+    val cluster: String,
+    val namespace: String,
+    val application: String,
+    val latestDeploy: Instant
 )
