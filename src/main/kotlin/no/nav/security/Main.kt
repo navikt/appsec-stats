@@ -42,7 +42,7 @@ fun main(): Unit = runBlocking {
 //    )
     logger.info("Reading deployments...")
     val deployments = bq.readDeployments()
-    logger.info("Found ${deployments.getOrThrow().size} deployments")
+    logger.info("Deployments: ${deployments.getOrThrow()}")
 }
 
 @OptIn(ExperimentalSerializationApi::class)
