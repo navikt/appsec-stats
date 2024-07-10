@@ -33,7 +33,7 @@ fun main(): Unit = runBlocking {
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     logger.info("Getting deployments...")
-    val deployments = bq.readDeployments()
+    val deployments = bq.fetchDeployments()
     logger.info("Fetched ${deployments.getOrThrow().size} deployments")
     // todo: use deployment info
 

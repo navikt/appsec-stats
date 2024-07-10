@@ -73,7 +73,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
         records.size
     }
 
-    fun readDeployments(): Result<List<Deployment>> = runCatching {
+    fun fetchDeployments(): Result<List<Deployment>> = runCatching {
         val queryConfig = QueryJobConfiguration
             .newBuilder(deploymentQuery).build()
         val job = bq.create(JobInfo.newBuilder(queryConfig).build()).waitFor()
