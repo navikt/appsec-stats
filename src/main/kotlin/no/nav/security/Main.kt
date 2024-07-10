@@ -40,6 +40,7 @@ fun main(): Unit = runBlocking {
 //            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
 //        ) }
 //    )
+    logger.info("Reading deployments...")
     val deployments = bq.readDeployments()
     logger.info("Found ${deployments.getOrThrow().size} deployments")
 }

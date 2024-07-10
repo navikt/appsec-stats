@@ -82,6 +82,9 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
             throw Exception("BigQuery: ${job?.status?.error ?: "unknown error"}")
         }
         val result = job.getQueryResults()
+        result.schema?.fields?.forEach { field ->
+            println("Field ${field.name} is of type ${field.type}")
+        }
         result.iterateAll().map { row ->
             Deployment(row["cluster"].stringValue,
                 row["namespace"].stringValue,
