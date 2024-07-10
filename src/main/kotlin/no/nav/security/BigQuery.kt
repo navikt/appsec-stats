@@ -41,7 +41,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
 
     private val deploymentQuery = """SELECT cluster,namespace,application,max(deployTime) as latest_deploy
             FROM `$naisAnalyseProjectId.deploys.from_devrapid_unique`
-            group by cluster, application
+            group by cluster, application, namespace
     """
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
