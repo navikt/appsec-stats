@@ -38,9 +38,9 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
             Field.of("deployDateTime", StandardSQLTypeName.DATETIME)
         )
 
-    private val deploymentQuery = """SELECT cluster,namespace,application,max(deployTime) as latest_deploy
+    private val deploymentQuery = """SELECT platform,cluster,namespace,application,max(deployTime) as latest_deploy
             FROM `$naisAnalyseProjectId.deploys.from_devrapid_unique`
-            group by cluster, application, namespace
+            group by cluster, application, namespace, platform
     """
 
     fun insert(records: List<IssueCountRecord>) = runCatching {
@@ -82,7 +82,8 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
         }
         val result = job.getQueryResults()
         result.iterateAll().map { row ->
-            Deployment(row["cluster"].stringValue,
+            Deployment(row["platform"].stringValue,
+                row["cluster"].stringValue,
                 row["namespace"].stringValue,
                 row["application"].stringValue,
                 row["latest_deploy"].timestampInstant
@@ -118,6 +119,7 @@ class IssueCountRecord(
 )
 
 data class Deployment(
+    val platform: String,
     val cluster: String,
     val namespace: String,
     val application: String,
