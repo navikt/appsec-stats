@@ -118,7 +118,7 @@ class IssueCountRecord(
     var deployDate: String? = null
 )
 
-class Deployment(
+data class Deployment(
     val cluster: String,
     val namespace: String,
     val application: String,
