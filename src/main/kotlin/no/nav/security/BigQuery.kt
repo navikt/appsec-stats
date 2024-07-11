@@ -35,7 +35,8 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
             Field.of("isArchived", StandardSQLTypeName.BOOL),
             Field.of("productArea", StandardSQLTypeName.STRING),
             Field.of("isDeployed", StandardSQLTypeName.BOOL),
-            Field.of("deployDateTime", StandardSQLTypeName.DATETIME)
+            Field.of("deployDateTime", StandardSQLTypeName.DATETIME),
+            Field.of("deployedTo", StandardSQLTypeName.STRING)
         )
 
     private val deploymentQuery = """SELECT platform,cluster,namespace,application,max(deployTime) as latest_deploy
@@ -60,6 +61,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
                 "productArea" to it.productArea,
                 "isDeployed" to it.isDeployed,
                 "deployDateTime" to it.deployDate
+                "deployedTo" to it.deployedTo
             ))
         }
 
@@ -115,7 +117,8 @@ class IssueCountRecord(
     val isArchived: Boolean,
     var productArea: String?,
     var isDeployed: Boolean = false,
-    var deployDate: String? = null
+    var deployDate: String? = null,
+    var deployedTo: String? = null
 )
 
 data class Deployment(

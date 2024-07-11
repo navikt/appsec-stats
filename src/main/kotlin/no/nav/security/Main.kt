@@ -33,18 +33,22 @@ fun main(): Unit = runBlocking {
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     logger.info("Getting deployments...")
-    val deployments = bq.fetchDeployments()
-    logger.info("Fetched ${deployments.getOrThrow().size} deployments")
-    // todo: use deployment info
+    val deployments = bq.fetchDeployments().getOrThrow()
+    logger.info("Fetched ${deployments.size} deployments")
+    repositoryWithOwners.forEach { repo ->
+        newestDeployment(repo, deployments)?.let {
+            println("${repo.repositoryName} latest deployement was to ${it.platform} @ ${it.latestDeploy}")
+        }
+    }
 
-    bq.insert(repositoryWithOwners).fold(
-        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
-        { ex -> slack.send(
-            channel = "appsec-aktivitet",
-            heading = "GitHub Security Stats",
-            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
-        ) }
-    )
+//    bq.insert(repositoryWithOwners).fold(
+//        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
+//        { ex -> slack.send(
+//            channel = "appsec-aktivitet",
+//            heading = "GitHub Security Stats",
+//            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
+//        ) }
+//    )
 }
 
 @OptIn(ExperimentalSerializationApi::class)
