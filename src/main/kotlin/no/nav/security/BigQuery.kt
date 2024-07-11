@@ -60,7 +60,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
                 "isArchived" to it.isArchived,
                 "productArea" to it.productArea,
                 "isDeployed" to it.isDeployed,
-                "deployDateTime" to it.deployDate
+                "deployDateTime" to it.deployDate,
                 "deployedTo" to it.deployedTo
             ))
         }
