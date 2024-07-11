@@ -7,14 +7,14 @@ import no.nav.security.inputs.TeamsFilter
 import no.nav.security.inputs.TeamsFilterGitHub
 import java.net.URI
 
-class NaisApi(private val httpClient: HttpClient) {
+class NaisApi(httpClient: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/query"
     private val client = GraphQLKtorClient(
         url = URI(baseUrl).toURL(),
         httpClient = httpClient
     )
 
-    suspend fun adminAndDeployInfoFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
+    suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
         var iterations = 0
         val result = repositories.map {
             iterations++

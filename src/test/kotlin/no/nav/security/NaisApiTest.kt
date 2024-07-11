@@ -11,8 +11,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.time.Instant
-import java.time.ZoneId
 
 class NaisApiTest {
 
@@ -55,7 +53,7 @@ class NaisApiTest {
             GithubRepository(id = "3", name = "bar", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
         )
 
-        val repos = naisApi.adminAndDeployInfoFor(repositories)
+        val repos = naisApi.adminsFor(repositories)
 
         assertEquals(3, repos.size)
 
