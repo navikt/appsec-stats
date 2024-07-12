@@ -28,7 +28,7 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
     logger.info("Looking for repo owners...")
-    val repositoryWithOwners = naisApi.adminsFor(githubRepositories.take(20))
+    val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
@@ -42,22 +42,15 @@ fun main(): Unit = runBlocking {
             repo.deployDate = deployment.latestDeploy.toBigQueryFormat()
         }
     }
-    repositoryWithOwners.forEach {
-        if (it.isDeployed) {
-            println("${it.repositoryName} was deployed at ${it.deployDate}")
-        } else {
-            println("${it.repositoryName} hasn't been deployed anywhere that we know of")
-        }
-    }
 
-//    bq.insert(repositoryWithOwners).fold(
-//        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
-//        { ex -> slack.send(
-//            channel = "appsec-aktivitet",
-//            heading = "GitHub Security Stats",
-//            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
-//        ) }
-//    )
+    bq.insert(repositoryWithOwners).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
+        { ex -> slack.send(
+            channel = "appsec-aktivitet",
+            heading = "GitHub Security Stats",
+            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
+        ) }
+    )
 }
 
 @OptIn(ExperimentalSerializationApi::class)
