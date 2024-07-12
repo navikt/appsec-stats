@@ -23,11 +23,12 @@ fun main(): Unit = runBlocking {
     val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
-    logger.info("Looking for GitHub repos")
+    logger.info("Looking for GitHub repos...")
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
-    val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
+    logger.info("Looking for repo owners...")
+    val repositoryWithOwners = naisApi.adminsFor(githubRepositories.take(20))
     logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
@@ -36,8 +37,16 @@ fun main(): Unit = runBlocking {
     val deployments = bq.fetchDeployments().getOrThrow()
     logger.info("Fetched ${deployments.size} deployments")
     repositoryWithOwners.forEach { repo ->
-        newestDeployment(repo, deployments)?.let {
-            println("${repo.repositoryName} latest deployement was to ${it.platform} @ ${it.latestDeploy}")
+        newestDeployment(repo, deployments)?.let { deployment ->
+            repo.isDeployed = true
+            repo.deployDate = deployment.latestDeploy.toBigQueryFormat()
+        }
+    }
+    repositoryWithOwners.forEach {
+        if (it.isDeployed) {
+            println("${it.repositoryName} was deployed at ${it.deployDate}")
+        } else {
+            println("${it.repositoryName} hasn't been deployed anywhere that we know of")
         }
     }
 

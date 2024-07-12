@@ -49,7 +49,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
         val now = Instant.now().epochSecond
         val rows = records.map { it ->
             // Github DateTime format: 2024-01-31T12:06:05Z
-            val lastPush = Instant.parse(it.lastPush).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+            val lastPush = Instant.parse(it.lastPush).toBigQueryFormat()
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "owners" to it.owners,
@@ -107,6 +107,8 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
         }
     }
 }
+
+fun Instant.toBigQueryFormat() = this.atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
 class IssueCountRecord(
     val owners: List<String>,
