@@ -9,7 +9,7 @@ val logstashEncoderVersion = "7.4"
 val bigQueryClientVersion = "2.41.0"
 val kotlinxDatetimeVersion = "0.6.0"
 
-val expediaGraphQlVersion = "7.1.1"
+val expediaGraphQlVersion = "7.1.4"
 
 val junitJupiterVersion = "5.10.3"
 
@@ -18,7 +18,7 @@ val mainClassName = "no.nav.security.MainKt"
 plugins {
     kotlin("jvm") version "2.0.0"
     kotlin("plugin.serialization") version "2.0.0"
-    id("com.expediagroup.graphql") version "7.1.1"
+    id("com.expediagroup.graphql") version "7.1.4"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
