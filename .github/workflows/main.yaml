@@ -17,16 +17,16 @@ jobs:
       image: ${{ steps.docker-push.outputs.image }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # ratchet:actions/checkout@v4
-      - uses: gradle/actions/wrapper-validation@dbbdc275be76ac10734476cc723d82dfe7ec6eda # ratchet:gradle/actions/wrapper-validation@v3
+      - uses: gradle/actions/wrapper-validation@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # ratchet:gradle/actions/wrapper-validation@v3
       - uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # ratchet:actions/setup-java@v4
         with:
           java-version: 21
           distribution: temurin
           cache: gradle
-      - uses: gradle/actions/setup-gradle@dbbdc275be76ac10734476cc723d82dfe7ec6eda # ratchet:gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # ratchet:gradle/actions/setup-gradle@v3
       - name: Build shadowjar & test
         run: ./gradlew shadowjar
-      - uses: nais/docker-build-push@c00a86e7b5a57b284a308e88ad15470f3c79f80f # ratchet:nais/docker-build-push@v0
+      - uses: nais/docker-build-push@0abf17674d94d1011c7acd2d91c1f0002f6108d2 # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: appsec
@@ -35,8 +35,8 @@ jobs:
           project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@dbbdc275be76ac10734476cc723d82dfe7ec6eda # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@36f87b6d4722fb7f45f19218bf86ad698829ce70 # ratchet:nais/deploy/actions/deploy@v2
+        uses: gradle/actions/dependency-submission@d9c87d481d55275bb5441eef3fe0e46805f9ef70 # ratchet:gradle/actions/dependency-submission@v3
+      - uses: nais/deploy/actions/deploy@cb2604ae9b09eb936e06151ddbdcc62081bce06f # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
