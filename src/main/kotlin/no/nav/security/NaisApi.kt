@@ -15,12 +15,7 @@ class NaisApi(httpClient: HttpClient) {
     )
 
     suspend fun adminsFor(repositories: List<GithubRepository>): List<IssueCountRecord> {
-        var iterations = 0
         val result = repositories.map {
-            iterations++
-            if (iterations % 100 == 0) {
-                logger.info("Fetched info about $iterations repos from NAIS API.")
-            }
             IssueCountRecord(
                 owners = adminFor(it.name),
                 lastPush = it.pushedAt,

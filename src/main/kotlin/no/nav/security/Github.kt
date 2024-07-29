@@ -16,7 +16,6 @@ class GitHub(
     )
 
     suspend fun fetchOrgRepositories(repositoryCursor: String? = null, repositoryListe: List<GithubRepository> = emptyList()): List<GithubRepository> {
-        logger.info("looking for repos @ offset $repositoryCursor")
         val ghQuery = FetchGithubRepositoriesQuery(
             variables = FetchGithubRepositoriesQuery.Variables(
                 orgName = "navikt",
