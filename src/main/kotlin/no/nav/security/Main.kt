@@ -40,6 +40,7 @@ fun main(): Unit = runBlocking {
         newestDeployment(repo, deployments)?.let { deployment ->
             repo.isDeployed = true
             repo.deployDate = deployment.latestDeploy.toBigQueryFormat()
+            repo.deployedTo = deployment.cluster
         }
     }
 
