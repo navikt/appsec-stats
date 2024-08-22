@@ -85,7 +85,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
         val result = job.getQueryResults()
         result.iterateAll().map { row ->
             Deployment(row["platform"].stringValue,
-                row["cluster"].stringValue,
+                row["cluster"].stringValue.substringAfterLast("-"), // Not interested in dev/prod. Only fss/gcp.
                 row["namespace"].stringValue,
                 row["application"].stringValue,
                 row["latest_deploy"].timestampInstant
