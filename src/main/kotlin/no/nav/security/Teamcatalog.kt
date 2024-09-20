@@ -4,13 +4,14 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import kotlinx.serialization.Serializable
+import no.nav.security.bigquery.BQRepoStat
 
 class Teamcatalog(
     val httpClient: HttpClient
 ) {
     private val baseUrl = "http://team-catalog-backend.org.svc.cluster.local"
 
-    suspend fun updateRecordsWithProductAreasForTeams(teams: List<IssueCountRecord>) {
+    suspend fun updateRecordsWithProductAreasForTeams(teams: List<BQRepoStat>) {
         val activeProductAreas = httpClient.get { url("$baseUrl/productarea?status=ACTIVE") }
             .body<ProductAreaResponse>()
 

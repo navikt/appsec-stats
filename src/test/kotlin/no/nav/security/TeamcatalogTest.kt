@@ -8,6 +8,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import no.nav.security.bigquery.BQRepoStat
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -85,9 +86,9 @@ class TeamcatalogTest {
 
         val teamcatalog = Teamcatalog(httpClient)
         val teams = listOf(
-            IssueCountRecord(listOf("appsec"), "2022-01-01", "repo1", true, 1, false, null),
-            IssueCountRecord(listOf("nais"), "2022-01-01", "repo2", true, 1, false, null),
-            IssueCountRecord(emptyList(), "2022-01-01", "repo3", true, 1, false, null)
+            BQRepoStat(listOf("appsec"), "2022-01-01", "repo1", true, 1, false, null),
+            BQRepoStat(listOf("nais"), "2022-01-01", "repo2", true, 1, false, null),
+            BQRepoStat(emptyList(), "2022-01-01", "repo3", true, 1, false, null)
         )
 
         teamcatalog.updateRecordsWithProductAreasForTeams(teams)
