@@ -49,11 +49,11 @@ class NaisApi(httpClient: HttpClient) {
     }
 
     private tailrec suspend fun fetchTeamStats(offset: Int = 0, teams: List<BQNaisTeam> = emptyList()): List<BQNaisTeam> {
-        val ghQuery = (TeamStatsQuery(
+        val ghQuery = TeamStatsQuery(
             variables = TeamStatsQuery.Variables(
-                offset = offset,
+                offset = offset
             )
-        ))
+        )
         val response: GraphQLClientResponse<TeamStatsQuery.Result> = client.execute(ghQuery)
 
         val result = response.data?.teams?.nodes?.map {

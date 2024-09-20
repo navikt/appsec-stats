@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BigQueryRepos
 import no.nav.security.bigquery.BigQueryTeams
 import no.nav.security.bigquery.toBigQueryFormat
@@ -47,14 +48,9 @@ fun main(): Unit = runBlocking {
             repo.deployedTo = deployment.cluster
         }
     }
-
     bqRepo.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
-        { ex -> slack.send(
-            channel = "appsec-aktivitet",
-            heading = "GitHub Security Stats",
-            msg = "Insert to BigQuery Repo dataset failed: ${ex.localizedMessage}" // ex.message is too long?
-        ) }
+        { ex -> slack.send("Insert to BigQuery Repo dataset failed: ${ex.stackTraceToString()}") }
     )
 
     logger.info("Looking for team stats...")
@@ -62,11 +58,7 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched stats for ${naisTeamStats.size} teams")
     bqTeam.insert(naisTeamStats).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
-        { ex -> slack.send(
-            channel = "appsec-aktivitet",
-            heading = "GitHub Security Stats",
-            msg = "Insert to BigQuery Team dataset failed: ${ex.localizedMessage}" // ex.message is too long?
-        ) }
+        { ex -> slack.send("Insert to BigQuery Team dataset failed: ${ex.stackTraceToString()}") }
     )
 }
 

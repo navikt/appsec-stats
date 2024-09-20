@@ -12,10 +12,10 @@ class Slack(
     private val slackWebhookUrl: String
 ) {
 
-    suspend fun send(channel: String, heading: String, msg: String) {
+    suspend fun send(msg: String) {
         val toSend = Message(
-            channel, listOf(
-                markdownBlock(heading),
+            "appsec-aktivitet", listOf(
+                markdownBlock("GitHub Security Stats"),
                 dividerBlock(),
                 markdownBlock(msg)
             )
