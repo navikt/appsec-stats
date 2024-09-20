@@ -1,4 +1,4 @@
-package no.nav.security
+package no.nav.security.bigquery
 
 import com.google.cloud.bigquery.BigQueryOptions
 import com.google.cloud.bigquery.Field
@@ -16,7 +16,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
-class BigQuery(projectID: String, naisAnalyseProjectId: String) {
+class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
     private val bq = BigQueryOptions.newBuilder()
         .setProjectId(projectID)
         .build()
@@ -44,7 +44,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
             group by cluster, application, namespace, platform
     """
 
-    fun insert(records: List<IssueCountRecord>) = runCatching {
+    fun insert(records: List<BQRepoStat>) = runCatching {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
         val rows = records.map { it ->
@@ -110,7 +110,7 @@ class BigQuery(projectID: String, naisAnalyseProjectId: String) {
 
 fun Instant.toBigQueryFormat() = this.atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
-class IssueCountRecord(
+class BQRepoStat(
     val owners: List<String>,
     val lastPush: String?,
     val repositoryName: String,

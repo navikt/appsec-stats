@@ -11,13 +11,17 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import no.nav.security.bigquery.BigQueryRepos
+import no.nav.security.bigquery.BigQueryTeams
+import no.nav.security.bigquery.toBigQueryFormat
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(): Unit = runBlocking {
-    val bq = BigQuery(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
+    val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
+    val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
@@ -34,7 +38,7 @@ fun main(): Unit = runBlocking {
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     logger.info("Getting deployments...")
-    val deployments = bq.fetchDeployments().getOrThrow()
+    val deployments = bqRepo.fetchDeployments().getOrThrow()
     logger.info("Fetched ${deployments.size} deployments")
     repositoryWithOwners.forEach { repo ->
         newestDeployment(repo, deployments)?.let { deployment ->
@@ -44,12 +48,24 @@ fun main(): Unit = runBlocking {
         }
     }
 
-    bq.insert(repositoryWithOwners).fold(
-        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery") },
+    bqRepo.insert(repositoryWithOwners).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
         { ex -> slack.send(
             channel = "appsec-aktivitet",
             heading = "GitHub Security Stats",
-            msg = "Insert to BigQuery failed: ${ex.localizedMessage}" // ex.message is too long?
+            msg = "Insert to BigQuery Repo dataset failed: ${ex.localizedMessage}" // ex.message is too long?
+        ) }
+    )
+
+    logger.info("Looking for team stats...")
+    val naisTeamStats = naisApi.teamStats()
+    logger.info("Fetched stats for ${naisTeamStats.size} teams")
+    bqTeam.insert(naisTeamStats).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
+        { ex -> slack.send(
+            channel = "appsec-aktivitet",
+            heading = "GitHub Security Stats",
+            msg = "Insert to BigQuery Team dataset failed: ${ex.localizedMessage}" // ex.message is too long?
         ) }
     )
 }

@@ -1,0 +1,29 @@
+query ($offset: Int) {
+  teams(limit: 100, offset: offset) {
+    nodes {
+      slug
+      vulnerabilitiesSummary {
+        coverage
+      }
+      status {
+        apps {
+          total
+        }
+        jobs {
+          total
+        }
+      }
+      githubRepositories(
+        limit: 1
+        filter: { includeArchivedRepositories: false }
+      ) {
+        nodes {
+          name
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}

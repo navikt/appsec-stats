@@ -48,9 +48,9 @@ class NaisApiTest {
 
         val naisApi = NaisApi(httpClient)
         val repositories = listOf(
-            GithubRepository(id = "1", name = "appsec", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
-            GithubRepository(id = "2", name = "foo", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
-            GithubRepository(id = "3", name = "bar", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(name = "appsec", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(name = "foo", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
+            GithubRepository(name = "bar", isArchived = false, pushedAt = null, hasVulnerabilityAlertsEnabled = false, vulnerabilityAlerts = 0),
         )
 
         val repos = naisApi.adminsFor(repositories)
