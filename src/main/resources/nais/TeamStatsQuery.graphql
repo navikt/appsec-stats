@@ -14,7 +14,7 @@ query ($offset: Int) {
         }
       }
       githubRepositories(
-        limit: 1
+        limit: 1,
         filter: { includeArchivedRepositories: false }
       ) {
         nodes {
