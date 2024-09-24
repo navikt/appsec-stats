@@ -27,7 +27,7 @@ class BigQueryTeams(projectID: String) {
     private val schema =
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
-            Field.of("naisTeam", StandardSQLTypeName.TIMESTAMP),
+            Field.of("naisTeam", StandardSQLTypeName.STRING),
             Field.of("hasDeployedResources", StandardSQLTypeName.BOOL),
             Field.of("hasGithubRepositories", StandardSQLTypeName.BOOL),
         )
