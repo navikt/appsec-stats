@@ -1,5 +1,5 @@
 query ($offset: Int) {
-  teams(limit: 100, offset: offset) {
+  teams(limit: 100, offset: $offset) {
     nodes {
       slug
       vulnerabilitiesSummary {
