@@ -4,8 +4,6 @@ import com.google.cloud.bigquery.BigQueryOptions
 import com.google.cloud.bigquery.Field
 import com.google.cloud.bigquery.InsertAllRequest
 import com.google.cloud.bigquery.InsertAllRequest.RowToInsert
-import com.google.cloud.bigquery.JobInfo
-import com.google.cloud.bigquery.QueryJobConfiguration
 import com.google.cloud.bigquery.Schema
 import com.google.cloud.bigquery.StandardSQLTypeName
 import com.google.cloud.bigquery.StandardTableDefinition
@@ -13,8 +11,7 @@ import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
 import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
-import java.time.ZoneId
-import java.util.UUID
+import java.util.*
 
 class BigQueryTeams(projectID: String) {
     private val bq = BigQueryOptions.newBuilder()
@@ -28,6 +25,7 @@ class BigQueryTeams(projectID: String) {
         Schema.of(
             Field.of("when_collected", StandardSQLTypeName.TIMESTAMP),
             Field.of("naisTeam", StandardSQLTypeName.STRING),
+            Field.of("slsaCoverage", StandardSQLTypeName.INT64),
             Field.of("hasDeployedResources", StandardSQLTypeName.BOOL),
             Field.of("hasGithubRepositories", StandardSQLTypeName.BOOL),
         )
