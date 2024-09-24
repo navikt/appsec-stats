@@ -25,7 +25,6 @@ fun main(): Unit = runBlocking {
     val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
     val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-    val slack = Slack(httpClient = httpClient(null), slackWebhookUrl = requiredFromEnv("SLACK_WEBHOOK"))
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
     logger.info("Looking for GitHub repos...")
@@ -50,7 +49,7 @@ fun main(): Unit = runBlocking {
     }
     bqRepo.insert(repositoryWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
-        { ex -> slack.send("Insert to BigQuery Repo dataset failed: ${ex.stackTraceToString()}") }
+        { ex -> throw ex }
     )
 
     logger.info("Looking for team stats...")
@@ -58,7 +57,7 @@ fun main(): Unit = runBlocking {
     logger.info("Fetched stats for ${naisTeamStats.size} teams")
     bqTeam.insert(naisTeamStats).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
-        { ex -> slack.send("Insert to BigQuery Team dataset failed: ${ex.stackTraceToString()}") }
+        { ex -> throw ex }
     )
 }
 

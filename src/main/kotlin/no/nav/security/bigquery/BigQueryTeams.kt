@@ -35,7 +35,7 @@ class BigQueryTeams(projectID: String) {
     fun insert(records: List<BQNaisTeam>) = runCatching {
         createOrUpdateTableSchema()
         val now = Instant.now().epochSecond
-        val rows = records.map { it ->
+        val rows = records.map {
             RowToInsert.of(UUID.randomUUID().toString(), mapOf(
                 "when_collected" to now,
                 "naisTeam" to it.naisTeam,
