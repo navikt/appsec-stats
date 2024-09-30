@@ -36,7 +36,7 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@d156388eb19639ec20ade50009f3d199ce1e2808 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@b89805c1250ef5c495f24810a5960ae57877e015 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@f0cf5fedcaf21aa8f7c4da4e8b1b7b585eab51a5 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
