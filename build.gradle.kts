@@ -3,7 +3,7 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
-val ktorVersion = "2.3.12"
+val ktorVersion = "3.0.0"
 val logbackVersion = "1.5.9"
 val logstashEncoderVersion = "8.0"
 val bigQueryClientVersion = "2.43.1"
