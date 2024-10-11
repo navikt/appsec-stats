@@ -16,8 +16,8 @@ val junitJupiterVersion = "5.11.2"
 val mainClassName = "no.nav.security.MainKt"
 
 plugins {
-    kotlin("jvm") version "2.0.20"
-    kotlin("plugin.serialization") version "2.0.20"
+    kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
     id("com.expediagroup.graphql") version "8.1.0"
     id("com.gradleup.shadow") version "8.3.3"
 }
