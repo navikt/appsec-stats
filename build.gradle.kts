@@ -4,7 +4,7 @@ import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 val ktorVersion = "3.0.0"
-val logbackVersion = "1.5.9"
+val logbackVersion = "1.5.10"
 val logstashEncoderVersion = "8.0"
 val bigQueryClientVersion = "2.43.1"
 val kotlinxDatetimeVersion = "0.6.1"
