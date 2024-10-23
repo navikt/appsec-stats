@@ -60,7 +60,7 @@ class NaisApi(httpClient: HttpClient) {
             BQNaisTeam(
                 naisTeam = it.slug,
                 slsaCoverage = it.vulnerabilitiesSummary.coverage.toInt(),
-                hasDeployedResources = (it.status.apps.total > 0 || it.status.jobs.total > 0),
+                hasDeployedResources = (it.resourceInventory.totalApps > 0 || it.resourceInventory.totalJobs > 0),
                 hasGithubRepositories = it.githubRepositories.nodes.isNotEmpty()
             )
         }

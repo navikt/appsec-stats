@@ -5,13 +5,9 @@ query ($offset: Int) {
       vulnerabilitiesSummary {
         coverage
       }
-      status {
-        apps {
-          total
-        }
-        jobs {
-          total
-        }
+      resourceInventory {
+        totalApps
+        totalJobs
       }
       githubRepositories(
         limit: 1,
