@@ -58,6 +58,8 @@ jobs:
             team: appsec
   
         - uses: aquasecurity/trivy-action@master
+          env:
+            TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
           with:
             image-ref: '${{ needs.build.outputs.image }}'
             format: 'sarif'
