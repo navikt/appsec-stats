@@ -41,31 +41,28 @@ jobs:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
           IMAGE: ${{ steps.docker-push.outputs.image }}
-
   trivy:
-      runs-on: ubuntu-latest
-      needs: build
-      permissions:
-        contents: write # to write sarif
-        security-events: write # push sarif to github security
-        id-token: write # for nais/login
-      steps:
-        - uses: actions/checkout@v4
-        - uses: nais/login@v0
-          with:
-            project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-            identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
-            team: appsec
-  
-        - uses: aquasecurity/trivy-action@master
-          env:
-            TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
-          with:
-            image-ref: '${{ needs.build.outputs.image }}'
-            format: 'sarif'
-            output: 'trivy.sarif'
-  
-        - uses: github/codeql-action/upload-sarif@v3
-          with:
-            sarif_file: 'trivy.sarif'
-            category: appsec-stats
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write # to write sarif
+      security-events: write # push sarif to github security
+      id-token: write # for nais/login
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: nais/login@4ce7445c84f09114e481a1d2c164f563e9e2ba8e # ratchet:nais/login@v0
+        with:
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          team: appsec
+      - uses: aquasecurity/trivy-action@d2a392a13760cb64cb6bbd31d4bed2a7d9a5298d # ratchet:aquasecurity/trivy-action@master
+        env:
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
+        with:
+          image-ref: '${{ needs.build.outputs.image }}'
+          format: 'sarif'
+          output: 'trivy.sarif'
+      - uses: github/codeql-action/upload-sarif@4f3212b61783c3c68e8309a0f18a699764811cda # ratchet:github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy.sarif'
+          category: appsec-stats
