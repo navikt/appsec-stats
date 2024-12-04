@@ -6,7 +6,7 @@ import io.ktor.client.*
 import java.net.URI
 
 class NaisApi(httpClient: HttpClient) {
-    private val baseUrl = "https://console.nav.cloud.nais.io/query"
+    private val baseUrl = "https://console.nav.cloud.nais.io/graphql"
     private val client = GraphQLKtorClient(
         url = URI(baseUrl).toURL(),
         httpClient = httpClient
