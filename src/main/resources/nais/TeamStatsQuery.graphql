@@ -1,25 +1,38 @@
-query ($offset: Int) {
-  teams(limit: 100, offset: $offset) {
+query ($teamsCursor: Cursor, $repoCursor: Cursor) {
+  teams(
+    first: 100,
+    after: $teamsCursor
+  ) {
     nodes {
       slug
-      vulnerabilitiesSummary {
+      vulnerabilitySummary {
         coverage
       }
-      resourceInventory {
-        totalApps
-        totalJobs
+      inventoryCounts {
+        applications {
+          total
+        }
+        jobs {
+          total
+        }
       }
-      githubRepositories(
-        limit: 1,
-        filter: { includeArchivedRepositories: false }
+      repositories(
+        first: 100,
+        after: $repoCursor
       ) {
         nodes {
           name
+        }
+        pageInfo {
+          hasNextPage
+          startCursor
+          endCursor
         }
       }
     }
     pageInfo {
       hasNextPage
+      endCursor
     }
   }
 }

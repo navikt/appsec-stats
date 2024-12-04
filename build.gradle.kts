@@ -63,10 +63,7 @@ val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
 val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::class) {
     packageName.set("no.nav.security")
     schemaFile.set(file("${project.projectDir}/src/main/resources/nais/schema.graphql"))
-    queryFiles.from(listOf(
-        file("${project.projectDir}/src/main/resources/nais/AdminsQuery.graphql"),
-        file("${project.projectDir}/src/main/resources/nais/TeamStatsQuery.graphql")
-    ))
+    queryFiles.from(file("${project.projectDir}/src/main/resources/nais/TeamStatsQuery.graphql"))
     serializer.set(GraphQLSerializer.KOTLINX)
 }
 

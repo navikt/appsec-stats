@@ -112,12 +112,12 @@ fun Instant.toBigQueryFormat() = this.atZone(ZoneId.systemDefault()).toLocalDate
 
 class BQRepoStat(
     val owners: List<String>,
-    val lastPush: String?,
+    val lastPush: String? = null,
     val repositoryName: String,
     val vulnerabilityAlertsEnabled: Boolean,
     val vulnerabilityCount: Int,
     val isArchived: Boolean,
-    var productArea: String?,
+    var productArea: String? = null,
     var isDeployed: Boolean = false,
     var deployDate: String? = null,
     var deployedTo: String? = null

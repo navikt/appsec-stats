@@ -9,9 +9,9 @@ import io.ktor.http.*
 import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
+import no.nav.security.bigquery.BQRepoStat
 import no.nav.security.bigquery.BigQueryRepos
 import no.nav.security.bigquery.BigQueryTeams
 import no.nav.security.bigquery.toBigQueryFormat
@@ -31,10 +31,20 @@ fun main(): Unit = runBlocking {
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
-    logger.info("Looking for repo owners...")
-    val repositoryWithOwners = naisApi.adminsFor(githubRepositories)
-    logger.info("Fetched ${repositoryWithOwners.size} repo owners from NAIS API")
+    logger.info("Looking for team info in nais graphql...")
+    val naisTeams = naisApi.teamStats()
+    logger.info("Fetched info about ${naisTeams.size} teams from NAIS")
 
+    val repositoryWithOwners = githubRepositories.map { repo ->
+        val githubRepo = githubRepositories.find { it.name == repo.name }
+        BQRepoStat(
+            owners = naisTeams.find { it.repositories.contains(repo.name) }?.naisTeam?.let { listOf(it) } ?: emptyList(),
+            repositoryName = repo.name,
+            vulnerabilityAlertsEnabled = githubRepo?.hasVulnerabilityAlertsEnabled ?: false,
+            vulnerabilityCount = githubRepo?.vulnerabilityAlerts ?: 0,
+            isArchived = githubRepo?.isArchived ?: false,
+        )
+    }
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     logger.info("Getting deployments...")
@@ -52,16 +62,20 @@ fun main(): Unit = runBlocking {
         { ex -> throw ex }
     )
 
-    logger.info("Looking for team stats...")
-    val naisTeamStats = naisApi.teamStats()
-    logger.info("Fetched stats for ${naisTeamStats.size} teams")
-    bqTeam.insert(naisTeamStats).fold(
+    val bqNaisTeams = naisTeams.map {
+        BQNaisTeam(
+            naisTeam = it.naisTeam,
+            slsaCoverage = it.slsaCoverage,
+            hasDeployedResources = it.hasDeployedResources,
+            hasGithubRepositories = it.hasGithubRepositories
+        )
+    }
+    bqTeam.insert(bqNaisTeams).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
         { ex -> throw ex }
     )
 }
 
-@OptIn(ExperimentalSerializationApi::class)
 internal fun httpClient(authToken: String?) = HttpClient(CIO) {
     expectSuccess = true
     install(HttpRequestRetry) {
