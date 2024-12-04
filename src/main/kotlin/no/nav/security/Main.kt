@@ -9,7 +9,6 @@ import io.ktor.http.*
 import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.toInstant
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
@@ -36,7 +35,7 @@ fun main(): Unit = runBlocking {
     val naisTeams = naisApi.teamStats()
     logger.info("Fetched ${naisTeams.size} teams from NAIS with a total of ${naisTeams.sumOf { it.repositories.size }} repositories")
 
-    val repositoryWithOwners = githubRepositories.map { repo ->
+    val repositoriesWithOwners = githubRepositories.map { repo ->
         BQRepoStat(
             owners = naisTeams.filter { it.repositories.contains(repo.name) }.map { it.naisTeam },
             repositoryName = repo.name,
@@ -46,21 +45,21 @@ fun main(): Unit = runBlocking {
             lastPush = repo.pushedAt
         )
     }
-    logger.info("Found ${repositoryWithOwners.count { it.owners.isNotEmpty() }} repositories with owners and ${repositoryWithOwners.count { it.owners.isEmpty() }} repositories with no owners")
+    logger.info("Found ${repositoriesWithOwners.count { it.owners.isNotEmpty() }} repositories with owners and ${repositoriesWithOwners.count { it.owners.isEmpty() }} repositories with no owners")
 
-    teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
+    teamcatalog.updateRecordsWithProductAreasForTeams(repositoriesWithOwners)
 
     logger.info("Looking for deployments...")
     val deployments = bqRepo.fetchDeployments().getOrThrow()
     logger.info("Fetched ${deployments.size} deployments")
-    repositoryWithOwners.forEach { repo ->
+    repositoriesWithOwners.forEach { repo ->
         newestDeployment(repo, deployments)?.let { deployment ->
             repo.isDeployed = true
             repo.deployDate = deployment.latestDeploy.toBigQueryFormat()
             repo.deployedTo = deployment.cluster
         }
     }
-    logger.info("Found deployments for ${repositoryWithOwners.count { it.isDeployed }} repositories")
+    logger.info("Found deployments for ${repositoriesWithOwners.count { it.isDeployed }} repositories")
     //bqRepo.insert(repositoryWithOwners).fold(
     //    { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
     //    { ex -> throw ex }

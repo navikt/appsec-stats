@@ -30,13 +30,13 @@ class NaisApi(httpClient: HttpClient) {
         val response: GraphQLClientResponse<TeamStatsQuery.Result> = client.execute(ghQuery)
 
         val result = response.data?.teams?.nodes?.map { team ->
-            val teamRepos = team.repositories.nodes.map { repo -> repo.name }
+            val existingTeamRepos = teams.find { it.naisTeam == team.slug }?.repositories ?: emptyList()
             val newTeam = NaisTeam(
                 naisTeam = team.slug,
                 slsaCoverage = team.vulnerabilitySummary.coverage.toInt(),
                 hasDeployedResources = (team.inventoryCounts.applications.total > 0 || team.inventoryCounts.jobs.total > 0),
                 hasGithubRepositories = (team.repositories.nodes.isNotEmpty()),
-                repositories = teams.find { it.naisTeam == team.slug }?.repositories?.plus(teamRepos) ?: teamRepos
+                repositories = team.repositories.nodes.map { it.name.substringAfter("/") }.plus(existingTeamRepos)
             )
             // Fetch next page of repositories if available
             if(team.repositories.pageInfo.hasNextPage) {
