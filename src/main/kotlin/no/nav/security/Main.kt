@@ -46,7 +46,8 @@ fun main(): Unit = runBlocking {
             lastPush = repo.pushedAt
         )
     }
-    logger.info("Matched ${repositoryWithOwners.size} repositories with owners")
+    logger.info("Found ${repositoryWithOwners.count { it.owners.isNotEmpty() }} repositories with owners and ${repositoryWithOwners.count { it.owners.isEmpty() }} repositories with no owners")
+
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
     logger.info("Looking for deployments...")
@@ -59,10 +60,11 @@ fun main(): Unit = runBlocking {
             repo.deployedTo = deployment.cluster
         }
     }
-    bqRepo.insert(repositoryWithOwners).fold(
-        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
-        { ex -> throw ex }
-    )
+    logger.info("Found deployments for ${repositoryWithOwners.count { it.isDeployed }} repositories")
+    //bqRepo.insert(repositoryWithOwners).fold(
+    //    { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
+    //    { ex -> throw ex }
+    //)
 
     val bqNaisTeams = naisTeams.map {
         BQNaisTeam(
@@ -72,6 +74,7 @@ fun main(): Unit = runBlocking {
             hasGithubRepositories = it.hasGithubRepositories
         )
     }
+    logger.info("Found ${bqNaisTeams.count { it.slsaCoverage == 0 && it.hasDeployedResources }} teams with 0 slsaCoverage and deployed resources")
     bqTeam.insert(bqNaisTeams).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
         { ex -> throw ex }
