@@ -1,7 +1,6 @@
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 val ktorVersion = "3.0.1"
 val logbackVersion = "1.5.12"
@@ -19,17 +18,14 @@ plugins {
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.serialization") version "2.1.0"
     id("com.expediagroup.graphql") version "8.2.1"
-    id("com.gradleup.shadow") version "8.3.5"
 }
 
 repositories {
     mavenCentral()
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
-    }
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {
@@ -68,11 +64,22 @@ val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::clas
 }
 
 tasks {
-    withType<ShadowJar> {
+    withType<Jar> {
         archiveBaseName.set("app")
-        archiveClassifier.set("")
+
         manifest {
             attributes["Main-Class"] = mainClassName
+            attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") {
+                it.name
+            }
+        }
+
+        doLast {
+            configurations.runtimeClasspath.get().forEach {
+                val file = File("${layout.buildDirectory.get()}/libs/${it.name}")
+                if (!file.exists())
+                    it.copyTo(file)
+            }
         }
     }
 
@@ -81,5 +88,9 @@ tasks {
         testLogging {
             showExceptions = true
         }
+    }
+
+    withType<Wrapper> {
+        gradleVersion = "8.11.1"
     }
 }
