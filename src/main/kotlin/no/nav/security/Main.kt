@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.toInstant
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
@@ -33,21 +34,22 @@ fun main(): Unit = runBlocking {
 
     logger.info("Looking for team info in nais graphql...")
     val naisTeams = naisApi.teamStats()
-    logger.info("Fetched info about ${naisTeams.size} teams from NAIS")
+    logger.info("Fetched ${naisTeams.size} teams from NAIS with a total of ${naisTeams.sumOf { it.repositories.size }} repositories")
 
     val repositoryWithOwners = githubRepositories.map { repo ->
-        val githubRepo = githubRepositories.find { it.name == repo.name }
         BQRepoStat(
-            owners = naisTeams.find { it.repositories.contains(repo.name) }?.naisTeam?.let { listOf(it) } ?: emptyList(),
+            owners = naisTeams.filter { it.repositories.contains(repo.name) }.map { it.naisTeam },
             repositoryName = repo.name,
-            vulnerabilityAlertsEnabled = githubRepo?.hasVulnerabilityAlertsEnabled ?: false,
-            vulnerabilityCount = githubRepo?.vulnerabilityAlerts ?: 0,
-            isArchived = githubRepo?.isArchived ?: false,
+            vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,
+            vulnerabilityCount = repo.vulnerabilityAlerts,
+            isArchived = repo.isArchived,
+            lastPush = repo.pushedAt
         )
     }
+    logger.info("Matched ${repositoryWithOwners.size} repositories with owners")
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoryWithOwners)
 
-    logger.info("Getting deployments...")
+    logger.info("Looking for deployments...")
     val deployments = bqRepo.fetchDeployments().getOrThrow()
     logger.info("Fetched ${deployments.size} deployments")
     repositoryWithOwners.forEach { repo ->

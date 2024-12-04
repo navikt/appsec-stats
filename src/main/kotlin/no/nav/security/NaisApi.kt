@@ -40,6 +40,7 @@ class NaisApi(httpClient: HttpClient) {
             )
             // Fetch next page of repositories if available
             if(team.repositories.pageInfo.hasNextPage) {
+                logger.info("Team ${team.slug} has more repositories, fetching next page with cursor ${team.repositories.pageInfo.endCursor}")
                 return fetchTeamStats(
                     teamCursor = response.data?.teams?.pageInfo?.startCursor,
                     repoCursor = team.repositories.pageInfo.endCursor,
