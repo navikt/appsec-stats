@@ -60,10 +60,10 @@ fun main(): Unit = runBlocking {
         }
     }
     logger.info("Found deployments for ${repositoriesWithOwners.count { it.isDeployed }} repositories")
-    //bqRepo.insert(repositoryWithOwners).fold(
-    //    { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
-    //    { ex -> throw ex }
-    //)
+    bqRepo.insert(repositoriesWithOwners).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
+        { ex -> throw ex }
+    )
 
     val bqNaisTeams = naisTeams.map {
         BQNaisTeam(
