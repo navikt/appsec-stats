@@ -2,7 +2,7 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 
-val ktorVersion = "3.0.1"
+val ktorVersion = "3.0.2"
 val logbackVersion = "1.5.12"
 val logstashEncoderVersion = "8.0"
 val bigQueryClientVersion = "2.44.0"
