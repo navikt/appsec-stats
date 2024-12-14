@@ -51,7 +51,7 @@ class NaisApi(httpClient: HttpClient) {
         }?.toSet() ?: emptySet()
 
         if(response.errors?.isNotEmpty() == true) {
-            throw RuntimeException("Error fetching team stats from NAIS API: ${response.errors.toString()}")
+            throw RuntimeException("Error fetching team stats from NAIS API (teamCursor: $teamCursor, repoCursor $repoCursor): ${response.errors.toString()}")
         }
 
         if(result.isEmpty()) {
