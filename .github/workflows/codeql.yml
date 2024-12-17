@@ -26,7 +26,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@df409f7d9260372bd5f19e5b04e83cb3c43714ae # ratchet:github/codeql-action/init@v3
         with:
-          languages: java-kotlin, javascript-typescript # JS/TS for github workflows support.
+          languages: java-kotlin
           build-mode: manual
           queries: security-extended,security-and-quality
           config: |
