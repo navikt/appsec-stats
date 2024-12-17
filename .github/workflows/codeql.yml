@@ -8,9 +8,9 @@ on:
     - cron: '32 13 * * 1'
   workflow_dispatch:
 jobs:
-  analyze:
+  analyze-kotlin:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     permissions:
       security-events: write
       packages: read
@@ -37,3 +37,20 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@df409f7d9260372bd5f19e5b04e83cb3c43714ae # ratchet:github/codeql-action/analyze@v3
+  analyze-js: # For github workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
+      - uses: github/codeql-action/init@df409f7d9260372bd5f19e5b04e83cb3c43714ae # ratchet:github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended,security-and-quality
+          config: |
+            threat-models: local
+      - uses: github/codeql-action/analyze@df409f7d9260372bd5f19e5b04e83cb3c43714ae # ratchet:github/codeql-action/analyze@v3
