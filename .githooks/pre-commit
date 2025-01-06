@@ -1,4 +1,0 @@
-#!/bin/sh
-
-# Run the check_gradle_lockfile script
-./gradle_lockfile.sh
