@@ -25,7 +25,7 @@ jobs:
           distribution: temurin
           cache: gradle
       - uses: gradle/actions/setup-gradle@0bdd871935719febd78681f197cd39af5b6e16a6 # ratchet:gradle/actions/setup-gradle@v3
-      - name: Build shadowjar & test
+      - name: Test & build
         run: ./gradlew test build
       - uses: nais/docker-build-push@5246e4705d79945a0ec28eb9bd3638dd534fee46 # ratchet:nais/docker-build-push@v0
         id: docker-push
