@@ -20,6 +20,10 @@ plugins {
     id("com.expediagroup.graphql") version "8.2.1"
 }
 
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 repositories {
     mavenCentral()
 }
@@ -91,6 +95,19 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "8.11.1"
+        gradleVersion = "8.12"
+    }
+
+    register("installGitHooks") {
+        doLast {
+            providers.exec {
+                executable = "git"
+                args("config core.hooksPath .githooks")
+            }
+        }
+    }
+
+    named("build") {
+        dependsOn("installGitHooks")
     }
 }
