@@ -39,7 +39,7 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@0bdd871935719febd78681f197cd39af5b6e16a6 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@7a0a3316206cf30cba681b159c3f0990744cd562 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@107627e2046c4299a7203c6de50a239d5dd69f04 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
@@ -67,7 +67,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@dd196fa9ce80b6bacc74ca1c32bd5b0ba22efca7 # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@ee117c905ab18f32fa0f66c2fe40ecc8013f3e04 # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
