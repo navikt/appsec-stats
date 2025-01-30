@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # ratchet:actions/setup-java@v4
+      - uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # ratchet:actions/setup-java@v4
         with:
           java-version: 21
           distribution: temurin
@@ -39,7 +39,7 @@ jobs:
           identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@0bdd871935719febd78681f197cd39af5b6e16a6 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@85d08b0d2e80e67b0e9d51a1fa94e9f9a4f62c5a # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@293e475987da813be40e0d0a6bc6f2a770627304 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
@@ -67,7 +67,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@17a820bf2e43b47be2c72b39cc905417bc1ab6d0 # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@dd746615b3b9d728a6a37ca2045b68ca76d4841a # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
