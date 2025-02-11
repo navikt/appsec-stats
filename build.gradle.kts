@@ -6,7 +6,7 @@ val ktorVersion = "3.0.3"
 val logbackVersion = "1.5.16"
 val logstashEncoderVersion = "8.0"
 val bigQueryClientVersion = "2.47.0"
-val kotlinxDatetimeVersion = "0.6.1"
+val kotlinxDatetimeVersion = "0.6.2"
 
 val expediaGraphQlVersion = "8.3.0"
 
