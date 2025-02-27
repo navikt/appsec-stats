@@ -2,15 +2,15 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 
-val ktorVersion = "3.1.0"
-val logbackVersion = "1.5.16"
+val ktorVersion = "3.1.1"
+val logbackVersion = "1.5.17"
 val logstashEncoderVersion = "8.0"
-val bigQueryClientVersion = "2.48.0"
+val bigQueryClientVersion = "2.48.1"
 val kotlinxDatetimeVersion = "0.6.2"
 
 val expediaGraphQlVersion = "8.3.0"
 
-val junitJupiterVersion = "5.11.4"
+val junitJupiterVersion = "5.12.0"
 
 val mainClassName = "no.nav.security.MainKt"
 
