@@ -25,7 +25,6 @@ jobs:
         with:
           java-version: 21
           distribution: temurin
-          cache: gradle
       - uses: gradle/actions/setup-gradle@94baf225fe0a508e581a564467443d0e2379123b # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
         run: ./gradlew test build
@@ -35,8 +34,6 @@ jobs:
           team: appsec
           push_image: true
           pull: true
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@94baf225fe0a508e581a564467443d0e2379123b # ratchet:gradle/actions/dependency-submission@v3
       - uses: nais/deploy/actions/deploy@7e3c2dd373a307827e55a757b5f3b51e9fe352d5 # ratchet:nais/deploy/actions/deploy@v2
@@ -57,8 +54,6 @@ jobs:
           persist-credentials: false
       - uses: nais/login@8ebbba35984d713e500e5d6c4ceec1cf3026e30c # ratchet:nais/login@v0
         with:
-          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
-          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
           team: appsec
       - uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # ratchet:aquasecurity/trivy-action@master
         env:
