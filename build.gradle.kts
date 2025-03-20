@@ -10,7 +10,7 @@ val kotlinxDatetimeVersion = "0.6.2"
 
 val expediaGraphQlVersion = "8.4.0"
 
-val junitJupiterVersion = "5.12.1"
+val junitVersion = "5.12.1"
 
 val mainClassName = "no.nav.security.MainKt"
 
@@ -42,10 +42,10 @@ dependencies {
 
     implementation("com.google.cloud:google-cloud-bigquery:$bigQueryClientVersion")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
+    testImplementation(platform("org.junit:junit-bom:$junitVersion"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
