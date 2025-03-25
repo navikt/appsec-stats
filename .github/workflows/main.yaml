@@ -28,7 +28,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@94baf225fe0a508e581a564467443d0e2379123b # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
         run: ./gradlew test build
-      - uses: nais/docker-build-push@aed4d69de423d70d995a9fac4bb00dedb7b00f91 # ratchet:nais/docker-build-push@v0
+      - uses: nais/docker-build-push@1fae4798c79f4af4c3cdbd3fe65e51f8f3ba2368 # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: appsec
@@ -62,7 +62,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@5f8171a638ada777af81d42b55959a643bb29017 # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@1b549b9259bda1cb5ddde3b41741a82a2d15a841 # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
