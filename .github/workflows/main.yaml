@@ -25,7 +25,7 @@ jobs:
         with:
           java-version: 21
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@94baf225fe0a508e581a564467443d0e2379123b # ratchet:gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@06832c7b30a0129d7fb559bcc6e43d26f6374244 # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
         run: ./gradlew test build
       - uses: nais/docker-build-push@1fae4798c79f4af4c3cdbd3fe65e51f8f3ba2368 # ratchet:nais/docker-build-push@v0
@@ -35,8 +35,8 @@ jobs:
           push_image: true
           pull: true
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@94baf225fe0a508e581a564467443d0e2379123b # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@9924b916406e572d3c8acd1936ed8df17bf15a1d # ratchet:nais/deploy/actions/deploy@v2
+        uses: gradle/actions/dependency-submission@06832c7b30a0129d7fb559bcc6e43d26f6374244 # ratchet:gradle/actions/dependency-submission@v3
+      - uses: nais/deploy/actions/deploy@0e5eb39ad70e2e094ef233af61a4fab5950e80d9 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # ratchet:actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: nais/login@8ebbba35984d713e500e5d6c4ceec1cf3026e30c # ratchet:nais/login@v0
+      - uses: nais/login@3444be636212c24b7f4c2d83c700aba40961b437 # ratchet:nais/login@v0
         with:
           team: appsec
       - uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # ratchet:aquasecurity/trivy-action@master
