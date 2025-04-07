@@ -36,7 +36,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@06832c7b30a0129d7fb559bcc6e43d26f6374244 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@0e5eb39ad70e2e094ef233af61a4fab5950e80d9 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@655191e618af58744d594ab4226aeac78dc739ec # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
