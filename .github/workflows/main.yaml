@@ -25,7 +25,7 @@ jobs:
         with:
           java-version: 21
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@8379f6a1328ee0e06e2bb424dadb7b159856a326 # ratchet:gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@ac638b010cf58a27ee6c972d7336334ccaf61c96 # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
         run: ./gradlew test build
       - uses: nais/docker-build-push@1fae4798c79f4af4c3cdbd3fe65e51f8f3ba2368 # ratchet:nais/docker-build-push@v0
@@ -35,8 +35,8 @@ jobs:
           push_image: true
           pull: true
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@8379f6a1328ee0e06e2bb424dadb7b159856a326 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@af6b60d6823a644020e6fdecd11b8d42c82c8515 # ratchet:nais/deploy/actions/deploy@v2
+        uses: gradle/actions/dependency-submission@ac638b010cf58a27ee6c972d7336334ccaf61c96 # ratchet:gradle/actions/dependency-submission@v3
+      - uses: nais/deploy/actions/deploy@d30ad2c21d7862e22d45cac6accfbf42bbbc0f39 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
           CLUSTER: prod-gcp
@@ -62,7 +62,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
