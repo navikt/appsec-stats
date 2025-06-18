@@ -3,46 +3,45 @@
 ![workflow](https://github.com/navikt/appsec-stats/actions/workflows/main.yaml/badge.svg)
 
 ## Overview
-This application fetches and processes data from various sources to generate statistics and insights. The data is then stored in BigQuery for further analysis. Uses this data to create a ["Dataprodukt"](https://docs.knada.io/dataprodukter/dataprodukt/).
+Application that collects security and deployment statistics for NAV's GitHub repositories, enriches the data with team and product area information, and stores it in BigQuery for analysis.
 
+Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/) on a schedule set in `.nais/nais.yaml`.
 
-Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/?h=job) on a schedule set in `.nais/nais.yaml`.
+## Required Environment Variables
+* `GCP_TEAM_PROJECT_ID` - GCP project ID for BigQuery operations
+* `NAIS_ANALYSE_PROJECT_ID` - Project ID containing deployment data
+* `GITHUB_TOKEN` - Token for GitHub API access
+* `NAIS_API_TOKEN` - Token for NAIS API access
 
-Ensure that the required environment variables are set (found in nais console) :
-* GCP_TEAM_PROJECT_ID
-* NAIS_ANALYSE_PROJECT_ID
-* GITHUB_TOKEN
-* NAIS_API_TOKEN
+## Data Flow
+1. **Collection**: Fetches data from GitHub, NAIS API, and Teamcatalog
+2. **Enrichment**: Links repositories to teams and product areas, adds deployment information
+3. **Storage**: Stores processed data in BigQuery tables (`appsec.github_repo_stats` and `appsec.github_team_stats`)
+
+## Data Model
+The application maintains two main data collections:
+
+### Repository Stats (`appsec.github_repo_stats`)
+* **Repository information** - Name, archive status, last push date
+* **Vulnerability data** - Vulnerability count from GitHub, alerts status
+* **Ownership data** - Team ownership, product area association
+* **Deployment status** - Deployment dates, target environment
+
+### Team Stats (`appsec.github_team_stats`)
+* **Team information** - NAIS team identifier
+* **Security metrics** - SLSA coverage percentage from NAIS API
+* **Resource status** - Deployment status, GitHub repository ownership
 
 ## Data Sources
-
-
-### GitHub
-- Endpoint: https://api.github.com/graphql
-- Data Fetched: Repository information including repository name, vulnerability alerts, archival status, and last push date.
-
-### NAIS API
-- Endpoint: https://console.nav.cloud.nais.io/graphql
-- Data Fetched: Team information including team slug, vulnerability summary, inventory counts, and repository ownership information.
-
-### Teamkatalogen
-- Endpoint: Teamcatalog API (Service discovery)
-- Data Fetched: Product area information for teams.
-
-### BigQuery
-- Endpoint: BigQuery API
-- Data Fetched: Deployment information.
-
+* **GitHub** - Repository information, vulnerability alerts, and archival status
+* **NAIS API** - Team data, SLSA coverage, and repository ownership
+* **Teamcatalog** - Product area information for teams
+* **BigQuery** - Deployment information from existing tables
 
 ## ⚖️ License
-[MIT](LICENSE).
+[MIT](LICENSE)
 
 ## 👥 Contact
+Maintained by [@appsec](https://github.com/orgs/navikt/teams/appsec)
 
-This project is maintained by [@appsec](https://github.com/orgs/navikt/teams/appsec).
-
-Questions and/or feature requests? Please create an [issue](https://github.com/navikt/appsec-stats/issues).
-
-If you work in [@navikt](https://github.com/navikt) you can reach us at the Slack channel [#appsec](https://nav-it.slack.com/archives/C06P91VN27M).
-
-
+Questions? Create an [issue](https://github.com/navikt/appsec-stats/issues) or reach us on Slack at [#appsec](https://nav-it.slack.com/archives/C06P91VN27M) if you work at NAV.
