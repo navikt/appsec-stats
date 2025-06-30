@@ -23,7 +23,18 @@ val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 fun main(): Unit = runBlocking {
     val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
     val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val github = GitHub(httpClient = httpClient(requiredFromEnv("GITHUB_TOKEN")))
+
+    val appAuth = GitHubAppAuth(
+        appId = requiredFromEnv("GITHUB_APP_ID"),
+        privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
+        installationId = requiredFromEnv("GITHUB_APP_INSTALLATION_ID"),
+        httpClient = httpClient(null)
+    )
+    // Installation token is valid for 60 minutes.
+    // https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
+    val githubHttpClient = httpClient(authToken = appAuth.getInstallationToken())
+
+    val github = GitHub(httpClient = githubHttpClient)
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
@@ -31,13 +42,18 @@ fun main(): Unit = runBlocking {
     val githubRepositories = github.fetchOrgRepositories()
     logger.info("Fetched ${githubRepositories.size} repositories from GitHub")
 
+    logger.info("Fetching repository admins from GitHub...")
+    val repositoriesWithAdmins = githubRepositories.fetchRepositoryAdmins(httpClient = githubHttpClient)
+    logger.info("Fetched admin teams for ${repositoriesWithAdmins.count { it.adminTeams.isNotEmpty() }} repositories")
+
     logger.info("Looking for team info in nais graphql...")
     val naisTeams = naisApi.teamStats()
     logger.info("Fetched ${naisTeams.size} teams from NAIS with a total of ${naisTeams.sumOf { it.repositories.size }} repositories")
 
-    val repositoriesWithOwners = githubRepositories.map { repo ->
+    val repositoriesWithOwners = repositoriesWithAdmins.map { repo ->
         BQRepoStat(
-            owners = naisTeams.filter { it.repositories.contains(repo.name) }.map { it.naisTeam },
+            // Add owners from naisTeams AND github repository admins
+            owners = (naisTeams.filter { it.repositories.contains(repo.name) }.map { it.naisTeam } + repo.adminTeams).distinct(),
             repositoryName = repo.name,
             vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,
             vulnerabilityCount = repo.vulnerabilityAlerts,
