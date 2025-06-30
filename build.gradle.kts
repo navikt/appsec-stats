@@ -7,6 +7,8 @@ val logbackVersion = "1.5.18"
 val logstashEncoderVersion = "8.1"
 val bigQueryClientVersion = "2.52.0"
 val kotlinxDatetimeVersion = "0.7.0-0.6.x-compat"
+val jwtVersion = "4.5.0"
+val bouncyCastleVersion = "1.81"
 
 val expediaGraphQlVersion = "8.8.1"
 
@@ -36,6 +38,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
 
     implementation("com.expediagroup:graphql-kotlin-ktor-client:$expediaGraphQlVersion")
+
+    // GitHub App authentication dependencies
+    implementation("com.auth0:java-jwt:$jwtVersion")
+    implementation("org.bouncycastle:bcpkix-jdk18on:$bouncyCastleVersion")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashEncoderVersion")
@@ -91,6 +97,6 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "8.12"
+        gradleVersion = "8.14.2"
     }
 }
