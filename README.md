@@ -3,7 +3,7 @@
 ![workflow](https://github.com/navikt/appsec-stats/actions/workflows/main.yaml/badge.svg)
 
 ## Overview
-Application that collects security and deployment statistics for NAV's GitHub repositories, enriches the data with team and product area information, and stores it in BigQuery for analysis.
+Application that collects security and deployment statistics for Nav's GitHub repositories, enriches the data with team and product area information, and stores it in BigQuery for analysis.
 
 Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/) on a schedule set in `.nais/nais.yaml`.
 
@@ -44,4 +44,4 @@ The application maintains two main data collections:
 ## 👥 Contact
 Maintained by [@appsec](https://github.com/orgs/navikt/teams/appsec)
 
-Questions? Create an [issue](https://github.com/navikt/appsec-stats/issues) or reach us on Slack at [#appsec](https://nav-it.slack.com/archives/C06P91VN27M) if you work at NAV.
+Questions? Create an [issue](https://github.com/navikt/appsec-stats/issues) or reach us on Slack at [#appsec](https://nav-it.slack.com/archives/C06P91VN27M) if you work at Nav.
