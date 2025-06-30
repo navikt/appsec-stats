@@ -62,39 +62,36 @@ class GitHub(
     }
 }
 
-fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> = runBlocking {
-    coroutineScope {
-        chunked(100) // Process repositories in chunks of 100
-            .flatMap { chunk ->
-                chunk.map { repo ->
-                    async {
-                        try {
-                            val response = httpClient
-                                .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
-                                    headers {
-                                        append(HttpHeaders.Accept, "application/vnd.github+json")
-                                        append("X-GitHub-Api-Version", "2022-11-28")
-                                    }
+suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> = coroutineScope {
+    chunked(100) // Process repositories in chunks of 100
+        .flatMap { chunk ->
+            chunk.map { repo ->
+                async(Dispatchers.IO) {
+                    try {
+                        val response = httpClient
+                            .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
+                                headers {
+                                    append(HttpHeaders.Accept, "application/vnd.github+json")
+                                    append("X-GitHub-Api-Version", "2022-11-28")
                                 }
-                            val teams: List<Team> = response.body()
-                            val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
-
-                            if (adminTeams.isNotEmpty()) {
-                                repo.copy(adminTeams = adminTeams)
-                            } else {
-                                repo
                             }
-                        } catch (e: Exception) {
-                            logger.error("Error fetching admin teams for repository ${repo.name}: ${e.message}")
+                        val teams: List<Team> = response.body()
+                        val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
+
+                        if (adminTeams.isNotEmpty()) {
+                            repo.copy(adminTeams = adminTeams)
+                        } else {
                             repo
                         }
+                    } catch (e: Exception) {
+                        logger.error("Error fetching admin teams for repository ${repo.name}: ${e.message}")
+                        repo
                     }
-                }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
-                    // Process each window of deferred values concurrently
-                    windowOfDeferred.awaitAll()
-                }.flatten() // Flatten the results of each window
-            }
-    }
+                }
+            }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
+                runBlocking { windowOfDeferred.awaitAll() }
+            }.flatten() // Flatten the results of each window
+        }
 }
 
 @Serializable
