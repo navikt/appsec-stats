@@ -62,41 +62,39 @@ class GitHub(
     }
 }
 
-fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> {
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
-
-    return chunked(100) // Process repositories in chunks of 100
-        .flatMap { chunk ->
-            chunk.map { repo ->
-                coroutineScope.async {
-                    try {
-                        val response = httpClient
-                            .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
-                                headers {
-                                    append(HttpHeaders.Accept, "application/vnd.github+json")
-                                    append("X-GitHub-Api-Version", "2022-11-28")
+fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> = runBlocking {
+    coroutineScope {
+        chunked(100) // Process repositories in chunks of 100
+            .flatMap { chunk ->
+                chunk.map { repo ->
+                    async {
+                        try {
+                            val response = httpClient
+                                .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
+                                    headers {
+                                        append(HttpHeaders.Accept, "application/vnd.github+json")
+                                        append("X-GitHub-Api-Version", "2022-11-28")
+                                    }
                                 }
-                            }
-                        val teams: List<Team> = response.body()
-                        val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
+                            val teams: List<Team> = response.body()
+                            val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
 
-                        if (adminTeams.isNotEmpty()) {
-                            repo.copy(adminTeams = adminTeams)
-                        } else {
+                            if (adminTeams.isNotEmpty()) {
+                                repo.copy(adminTeams = adminTeams)
+                            } else {
+                                repo
+                            }
+                        } catch (e: Exception) {
+                            logger.error("Error fetching admin teams for repository ${repo.name}: ${e.message}")
                             repo
                         }
-                    } catch (e: Exception) {
-                        logger.error("Error fetching admin teams for repository ${repo.name}: ${e.message}")
-                        repo
                     }
-                }
-            }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
-                // Process each window of deferred values concurrently
-                runBlocking {
+                }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
+                    // Process each window of deferred values concurrently
                     windowOfDeferred.awaitAll()
-                }
-            }.flatten() // Flatten the results of each window
-        }
+                }.flatten() // Flatten the results of each window
+            }
+    }
 }
 
 @Serializable
