@@ -14,6 +14,7 @@ import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
 import no.nav.security.bigquery.BigQueryRepos
 import no.nav.security.bigquery.BigQueryTeams
+import no.nav.security.bigquery.newestDeployment
 import no.nav.security.bigquery.toBigQueryFormat
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -65,17 +66,31 @@ fun main(): Unit = runBlocking {
 
     teamcatalog.updateRecordsWithProductAreasForTeams(repositoriesWithOwners)
 
-    logger.info("Looking for deployments...")
-    val deployments = bqRepo.fetchDeployments().getOrThrow()
-    logger.info("Fetched ${deployments.size} deployments")
+    logger.info("Looking for deployments in dev_rapid...")
+    val bqDeployments = bqRepo.fetchDeployments().getOrThrow()
+    logger.info("Fetched ${bqDeployments.size} deployments")
+
     repositoriesWithOwners.forEach { repo ->
-        newestDeployment(repo, deployments)?.let { deployment ->
+        newestDeployment(repo, bqDeployments)?.let { deployment ->
             repo.isDeployed = true
             repo.deployDate = deployment.latestDeploy.toBigQueryFormat()
             repo.deployedTo = deployment.cluster
         }
     }
-    logger.info("Found deployments for ${repositoriesWithOwners.count { it.isDeployed }} repositories")
+    logger.info("Found deployments for ${repositoriesWithOwners.count { it.isDeployed }} repositories from dev_rapid")
+
+    logger.info("Fetching deployments from Nais API...")
+    val naisDeployments = naisApi.deployments()
+    logger.info("Found ${naisDeployments.size} deployments in Nais API")
+    repositoriesWithOwners.forEach { repo ->
+        naisDeployments.firstOrNull { it.repository == repo.repositoryName }?.let { deployment ->
+            repo.isDeployed = true
+            repo.deployDate = deployment.createdAt
+            repo.deployedTo = deployment.environment
+        }
+    }
+
+
     bqRepo.insert(repositoriesWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
         { ex -> throw ex }

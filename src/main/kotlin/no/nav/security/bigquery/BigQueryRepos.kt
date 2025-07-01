@@ -75,7 +75,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
         records.size
     }
 
-    fun fetchDeployments(): Result<List<Deployment>> = runCatching {
+    fun fetchDeployments(): Result<List<BqDeploymentDto>> = runCatching {
         val queryConfig = QueryJobConfiguration
             .newBuilder(deploymentQuery).build()
         val job = bq.create(JobInfo.newBuilder(queryConfig).build()).waitFor()
@@ -84,7 +84,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
         }
         val result = job.getQueryResults()
         result.iterateAll().map { row ->
-            Deployment(row["platform"].stringValue,
+            BqDeploymentDto(row["platform"].stringValue,
                 row["cluster"].stringValue.substringAfterLast("-"), // Not interested in dev/prod. Only fss/gcp.
                 row["namespace"].stringValue,
                 row["application"].stringValue,
@@ -110,6 +110,12 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
 
 fun Instant.toBigQueryFormat() = this.atZone(ZoneId.systemDefault()).toLocalDate().toString()
 
+fun newestDeployment(record: BQRepoStat, bqDeploymentDtos: List<BqDeploymentDto>): BqDeploymentDto? =
+    bqDeploymentDtos
+        .filter { it.platform.isNotBlank() }
+        .filter { it.application == record.repositoryName }
+        .maxByOrNull { it.latestDeploy }
+
 class BQRepoStat(
     val owners: List<String>,
     val lastPush: String? = null,
@@ -123,7 +129,7 @@ class BQRepoStat(
     var deployedTo: String? = null
 )
 
-data class Deployment(
+data class BqDeploymentDto(
     val platform: String,
     val cluster: String,
     val namespace: String,
