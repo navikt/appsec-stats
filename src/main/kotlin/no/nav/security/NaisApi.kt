@@ -17,7 +17,7 @@ class NaisApi(httpClient: HttpClient) {
     }
 
     suspend fun deployments(): Set<NaisDeployment> {
-        val environments = fetchEnvironments() ?: emptySet()
+        val environments = fetchEnvironments()
         logger.info("Fetched ${environments.size} environment profiles: ${environments.joinToString(", ")}")
         return environments.flatMap { environment ->
             fetchDeployments(environment)

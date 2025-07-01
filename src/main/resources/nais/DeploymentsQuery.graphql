@@ -1,4 +1,4 @@
-query ($environment: String, $workloadCursor: Cursor) {
+query ($environment: String!, $workloadCursor: Cursor) {
   environment(name: $environment) {
       workloads(
         first: 100,
