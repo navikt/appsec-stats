@@ -3,7 +3,6 @@ package no.nav.security
 import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
 import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
-import no.nav.security.environments.Environment
 import java.net.URI
 
 class NaisApi(httpClient: HttpClient) {
@@ -19,6 +18,7 @@ class NaisApi(httpClient: HttpClient) {
 
     suspend fun deployments(): Set<NaisDeployment> {
         val environments = fetchEnvironments() ?: emptySet()
+        logger.info("Fetched ${environments.size} environment profiles: ${environments.joinToString(", ")}")
         return environments.flatMap { environment ->
             fetchDeployments(environment)
         }.toSet()
