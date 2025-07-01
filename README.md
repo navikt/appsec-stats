@@ -10,7 +10,9 @@ Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/) on a schedul
 ## Required Environment Variables
 * `GCP_TEAM_PROJECT_ID` - GCP project ID for BigQuery operations
 * `NAIS_ANALYSE_PROJECT_ID` - Project ID containing deployment data
-* `GITHUB_TOKEN` - Token for GitHub API access
+* `GITHUB_APP_ID` - Github App ID
+* `GITHUB_APP_PRIVATE_KEY` - Private key generated for the GitHub App
+* `GITHUB_APP_INSTALLATION_ID` - Github App installation ID, found after installing the app in organization
 * `NAIS_API_TOKEN` - Token for NAIS API access
 
 ## Data Flow
