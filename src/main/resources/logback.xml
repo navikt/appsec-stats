@@ -1,14 +1,6 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeCallerData>true</includeCallerData>
-            <fieldNames>
-                <version>[ignore]</version>
-                <levelValue>[ignore]</levelValue>
-                <logger>logger_name</logger>
-                <thread>thread_name</thread>
-            </fieldNames>
-        </encoder>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
     </appender>
 
     <root level="info">

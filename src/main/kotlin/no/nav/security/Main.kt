@@ -90,7 +90,6 @@ fun main(): Unit = runBlocking {
         }
     }
 
-
     bqRepo.insert(repositoriesWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
         { ex -> throw ex }
