@@ -78,7 +78,7 @@ class NaisApi(httpClient: HttpClient) {
     }
 
 
-    private suspend fun fetchEnvironments(): Set<String>? {
+    private suspend fun fetchEnvironments(): Set<String> {
         val ghQuery = Environments()
         val response = client.execute(ghQuery)
         return response.data?.environments?.nodes?.map { it.name }?.toSet() ?: emptySet()
