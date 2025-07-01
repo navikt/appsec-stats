@@ -1,15 +1,19 @@
 package no.nav.security
 
 import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
+import com.expediagroup.graphql.client.serialization.GraphQLClientKotlinxSerializer
 import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
 import java.net.URI
+import no.nav.security.deploymentsquery.Application
+import no.nav.security.deploymentsquery.Job
 
 class NaisApi(httpClient: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/graphql"
     private val client = GraphQLKtorClient(
         url = URI(baseUrl).toURL(),
-        httpClient = httpClient
+        httpClient = httpClient,
+        serializer = GraphQLClientKotlinxSerializer()
     )
 
     suspend fun teamStats(): Set<NaisTeam> {
@@ -101,11 +105,19 @@ class NaisApi(httpClient: HttpClient) {
             return deployments
         }
 
-        val newDeployments = response.data?.environment?.workloads?.nodes?.flatMap { workloads ->
-            workloads.deployments.nodes.mapNotNull { deployment ->
-                deployment.repository?.takeIf { it.isNotEmpty() }?.let { repo ->
-                    NaisDeployment(environment = environment, repository = repo, createdAt = deployment.createdAt)
+        val newDeployments = response.data?.environment?.workloads?.nodes?.flatMap { workload ->
+            when (workload) {
+                is Application -> workload.deployments.nodes.mapNotNull { deployment ->
+                    deployment.repository?.takeIf { it.isNotEmpty() }?.let { repo ->
+                        NaisDeployment(environment = environment, repository = repo, createdAt = deployment.createdAt)
+                    }
                 }
+                is Job -> workload.deployments.nodes.mapNotNull { deployment ->
+                    deployment.repository?.takeIf { it.isNotEmpty() }?.let { repo ->
+                        NaisDeployment(environment = environment, repository = repo, createdAt = deployment.createdAt)
+                    }
+                }
+                else -> emptyList()
             }
         }?.toSet() ?: emptySet()
 

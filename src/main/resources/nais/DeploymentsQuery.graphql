@@ -6,10 +6,21 @@ query ($environment: String!, $workloadCursor: Cursor) {
         orderBy: { field: DEPLOYMENT_TIME, direction: DESC }
       ) {
         nodes {
-          deployments(first: 1) {
-            nodes {
-              repository
-              createdAt
+          __typename
+          ... on Application {
+            deployments(first: 1) {
+              nodes {
+                repository
+                createdAt
+              }
+            }
+          }
+          ... on Job {
+            deployments(first: 1) {
+              nodes {
+                repository
+                createdAt
+              }
             }
           }
         }
