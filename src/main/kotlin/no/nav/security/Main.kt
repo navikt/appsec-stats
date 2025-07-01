@@ -89,6 +89,7 @@ fun main(): Unit = runBlocking {
             repo.deployedTo = deployment.environment
         }
     }
+    logger.info("Found deployments for ${repositoriesWithOwners.count { it.isDeployed }} repositories after Nais API.")
 
     bqRepo.insert(repositoriesWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
