@@ -1,10 +1,204 @@
 """
-The @defer directive may be specified on a fragment spread to imply de-prioritization, that causes the fragment to be omitted in the initial response, and delivered as a subsequent response afterward. A query with @defer directive will cause the request to potentially return multiple responses, where non-deferred data is delivered in the initial response and data deferred delivered in a subsequent response. @include and @skip take precedence over @defer.
+Directs the executor to defer this fragment when the `if` argument is true or undefined.
 """
 directive @defer(
+  """
+  Deferred when true or undefined.
+  """
   if: Boolean = true
+
+  """
+  Unique name
+  """
   label: String
 ) on FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"""
+Indicates exactly one field must be supplied and this field must not be `null`.
+"""
+directive @oneOf on INPUT_OBJECT
+
+enum ActivityLogActivityType {
+  """
+  An application was deleted.
+  """
+  APPLICATION_DELETED
+
+  """
+  An application was restarted.
+  """
+  APPLICATION_RESTARTED
+
+  """
+  An application was scaled.
+  """
+  APPLICATION_SCALED
+
+  """
+  Activity log entry for deployment activity.
+  """
+  DEPLOYMENT
+
+  """
+  Activity log entry for team deploy key updates.
+  """
+  TEAM_DEPLOY_KEY_UPDATED
+
+  """
+  Activity log entries related to job deletion.
+  """
+  JOB_DELETED
+
+  """
+  Activity log entries related to job triggering.
+  """
+  JOB_TRIGGERED
+
+  """
+  Reconciler enabled activity log entry.
+  """
+  RECONCILER_ENABLED
+
+  """
+  Reconciler disabled activity log entry.
+  """
+  RECONCILER_DISABLED
+
+  """
+  Reconciler configured activity log entry.
+  """
+  RECONCILER_CONFIGURED
+
+  """
+  Repository was added to a team.
+  """
+  REPOSITORY_ADDED
+
+  """
+  Repository was removed from a team.
+  """
+  REPOSITORY_REMOVED
+
+  """
+  Secret was created.
+  """
+  SECRET_CREATED
+
+  """
+  Secret value was added.
+  """
+  SECRET_VALUE_ADDED
+
+  """
+  Secret value was updated.
+  """
+  SECRET_VALUE_UPDATED
+
+  """
+  Secret value was removed.
+  """
+  SECRET_VALUE_REMOVED
+
+  """
+  Secret was deleted.
+  """
+  SECRET_DELETED
+
+  """
+  Service account was created.
+  """
+  SERVICE_ACCOUNT_CREATED
+
+  """
+  Service account was updated.
+  """
+  SERVICE_ACCOUNT_UPDATED
+
+  """
+  Service account was deleted.
+  """
+  SERVICE_ACCOUNT_DELETED
+
+  """
+  Role was assigned to a service account.
+  """
+  SERVICE_ACCOUNT_ROLE_ASSIGNED
+
+  """
+  Role was revoked from a service account.
+  """
+  SERVICE_ACCOUNT_ROLE_REVOKED
+
+  """
+  Service account token was created.
+  """
+  SERVICE_ACCOUNT_TOKEN_CREATED
+
+  """
+  Service account token was updated.
+  """
+  SERVICE_ACCOUNT_TOKEN_UPDATED
+
+  """
+  Service account token was deleted.
+  """
+  SERVICE_ACCOUNT_TOKEN_DELETED
+
+  """
+  Team was created.
+  """
+  TEAM_CREATED
+
+  """
+  Team was updated.
+  """
+  TEAM_UPDATED
+
+  """
+  Team delete key was created.
+  """
+  TEAM_CREATE_DELETE_KEY
+
+  """
+  Team delete key was confirmed.
+  """
+  TEAM_CONFIRM_DELETE_KEY
+
+  """
+  Team member was added.
+  """
+  TEAM_MEMBER_ADDED
+
+  """
+  Team member was removed.
+  """
+  TEAM_MEMBER_REMOVED
+
+  """
+  Team member role was set.
+  """
+  TEAM_MEMBER_SET_ROLE
+
+  """
+  Team environment was updated.
+  """
+  TEAM_ENVIRONMENT_UPDATED
+
+  """
+  Unleash instance was created.
+  """
+  UNLEASH_INSTANCE_CREATED
+
+  """
+  Unleash instance was updated.
+  """
+  UNLEASH_INSTANCE_UPDATED
+
+  """
+  Activity log entry for when a vulnerability is updated.
+  """
+  VULNERABILITY_UPDATED
+}
 
 """
 Interface for activity log entries.
@@ -124,6 +318,7 @@ enum ActivityLogEntryResourceType {
   All activity log entries related to secrets will use this resource type.
   """
   SECRET
+  SERVICE_ACCOUNT
 
   """
   All activity log entries related to teams will use this resource type.
@@ -139,6 +334,10 @@ enum ActivityLogEntryResourceType {
   All activity log entries related to vulnerabilities will use this resource type.
   """
   VULNERABILITY
+}
+
+input ActivityLogFilter {
+  activityTypes: [ActivityLogActivityType!]
 }
 
 input AddRepositoryToTeamInput {
@@ -223,9 +422,9 @@ type AllowTeamAccessToUnleashPayload {
 }
 
 """
-An application lets you run one or more instances of a container image on the [NAIS platform](https://nais.io/).
+An application lets you run one or more instances of a container image on the [Nais platform](https://nais.io/).
 
-Learn more about how to create and configure your applications in the [NAIS documentation](https://docs.nais.io/workloads/application/).
+Learn more about how to create and configure your applications in the [Nais documentation](https://docs.nais.io/workloads/application/).
 """
 type Application implements Node & Workload {
   """
@@ -247,6 +446,12 @@ type Application implements Node & Workload {
   The environment the application is deployed in.
   """
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The team environment for the application.
+  """
+  teamEnvironment: TeamEnvironment!
 
   """
   The container image of the application.
@@ -299,6 +504,41 @@ type Application implements Node & Workload {
   ): ApplicationInstanceConnection!
 
   """
+  If set, when the application was marked for deletion.
+  """
+  deletionStartedAt: Time
+
+  """
+  Activity log associated with the application.
+  """
+  activityLog(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+
+    """
+    Filter items.
+    """
+    filter: ActivityLogFilter
+  ): ActivityLogEntryConnection!
+
+  """
   BigQuery datasets referenced by the application. This does not currently support pagination, but will return all available datasets.
   """
   bigQueryDatasets(
@@ -324,11 +564,29 @@ type Application implements Node & Workload {
   cost: WorkloadCost!
 
   """
-  Deployment information for the application.
-  DO NOT USE
-  This is a work in progress, and will be changed in the future.
+  List of deployments for the application.
   """
-  deploymentInfo: DeploymentInfo!
+  deployments(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): DeploymentConnection!
 
   """
   Kafka topics the application has access to. This does not currently support pagination, but will return all available Kafka topics.
@@ -341,6 +599,11 @@ type Application implements Node & Workload {
   ): KafkaTopicAclConnection!
 
   """
+  List of log destinations for the application.
+  """
+  logDestinations: [LogDestination!]!
+
+  """
   Network policies for the application.
   """
   networkPolicy: NetworkPolicy!
@@ -349,16 +612,6 @@ type Application implements Node & Workload {
   OpenSearch instance referenced by the workload.
   """
   openSearch: OpenSearch
-
-  """
-  Redis instances referenced by the application. This does not currently support pagination, but will return all available Redis instances.
-  """
-  redisInstances(
-    """
-    Ordering options for items returned from the connection.
-    """
-    orderBy: RedisInstanceOrder
-  ): RedisInstanceConnection!
 
   """
   Secrets used by the application.
@@ -400,6 +653,26 @@ type Application implements Node & Workload {
   """
   status: WorkloadStatus!
   utilization: WorkloadUtilization!
+
+  """
+  Valkey instances referenced by the application. This does not currently support pagination, but will return all available Valkey instances.
+  """
+  valkeyInstances(
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: ValkeyInstanceOrder
+  ): ValkeyInstanceConnection!
+
+  """
+  Get the vulnerability summary history for application.
+  """
+  imageVulnerabilityHistory(
+    """
+    Get vulnerability summary from given date until today.
+    """
+    from: Date!
+  ): ImageVulnerabilityHistory!
 }
 
 """
@@ -495,6 +768,9 @@ type ApplicationInstance implements Node {
   restarts: Int!
   created: Time!
   status: ApplicationInstanceStatus!
+  instanceUtilization(
+    resourceType: UtilizationResourceType!
+  ): ApplicationInstanceUtilization!
 }
 
 type ApplicationInstanceConnection {
@@ -535,6 +811,13 @@ enum ApplicationInstanceState {
 type ApplicationInstanceStatus {
   state: ApplicationInstanceState!
   message: String!
+}
+
+type ApplicationInstanceUtilization {
+  """
+  Get the current usage for the requested resource type.
+  """
+  current: Float!
 }
 
 """
@@ -646,6 +929,58 @@ type ApplicationRestartedActivityLogEntry implements ActivityLogEntry & Node {
   environmentName: String
 }
 
+type ApplicationScaledActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug!
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the update.
+  """
+  data: ApplicationScaledActivityLogEntryData!
+}
+
+type ApplicationScaledActivityLogEntryData {
+  newSize: Int!
+  direction: ScalingDirection!
+}
+
 """
 The scaling configuration of an application.
 """
@@ -666,10 +1001,29 @@ type ApplicationScaling {
   strategies: [ScalingStrategy!]!
 }
 
+input AssignRoleToServiceAccountInput {
+  """
+  The ID of the service account to assign the role to.
+  """
+  serviceAccountID: ID!
+
+  """
+  The name of the role to assign.
+  """
+  roleName: String!
+}
+
+type AssignRoleToServiceAccountPayload {
+  """
+  The service account that had a role assigned.
+  """
+  serviceAccount: ServiceAccount
+}
+
 """
 Interface for authentication and authorization integrations.
 
-Read more about this topic in the [NAIS documentation](https://docs.nais.io/auth/).
+Read more about this topic in the [Nais documentation](https://docs.nais.io/auth/).
 """
 interface AuthIntegration {
   """
@@ -688,6 +1042,8 @@ type BigQueryDataset implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
   cascadingDelete: Boolean!
   description: String
   access(
@@ -763,6 +1119,8 @@ type Bucket implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
   cascadingDelete: Boolean!
   publicAccessPrevention: String!
   uniformBucketLevelAccess: Boolean!
@@ -985,6 +1343,13 @@ type ContainerImageWorkloadReferenceEdge {
   node: ContainerImageWorkloadReference!
 }
 
+type CostMonthlySummary {
+  """
+  The cost series.
+  """
+  series: [ServiceCostSeries!]!
+}
+
 input CreateSecretInput {
   """
   The name of the secret.
@@ -1007,6 +1372,79 @@ type CreateSecretPayload {
   The created secret.
   """
   secret: Secret
+}
+
+input CreateServiceAccountInput {
+  """
+  The name of the service account.
+  """
+  name: String!
+
+  """
+  A description of the service account.
+  """
+  description: String!
+
+  """
+  The team slug that the service account belongs to.
+  """
+  teamSlug: Slug
+}
+
+type CreateServiceAccountPayload {
+  """
+  The created service account.
+  """
+  serviceAccount: ServiceAccount
+}
+
+input CreateServiceAccountTokenInput {
+  """
+  The ID of the service account to create the token for.
+  """
+  serviceAccountID: ID!
+
+  """
+  The name of the service account token.
+  """
+  name: String!
+
+  """
+  The description of the service account token.
+  """
+  description: String!
+
+  """
+  Optional expiry date of the token.
+
+  If not specified, the token will never expire.
+  """
+  expiresAt: Date
+}
+
+type CreateServiceAccountTokenPayload {
+  """
+  The service account that the token belongs to.
+  """
+  serviceAccount: ServiceAccount
+
+  """
+  The created service account token.
+  """
+  serviceAccountToken: ServiceAccountToken
+
+  """
+  The secret of the service account token.
+
+  This value is only returned once, and can not be retrieved at a later stage. If the secret is lost, a new token must be created.
+
+  Once obtained, the secret can be used to authenticate as the service account using the HTTP `Authorization` request header:
+
+  ```
+  Authorization: Bearer <secret>
+  ```
+  """
+  secret: String
 }
 
 input CreateTeamInput {
@@ -1047,6 +1485,21 @@ input CreateUnleashForTeamInput {
 
 type CreateUnleashForTeamPayload {
   unleash: UnleashInstance
+}
+
+"""
+Get current unit prices.
+"""
+type CurrentUnitPrices {
+  """
+  Current price for one CPU hour.
+  """
+  cpu: Price!
+
+  """
+  Current price for one GB hour of memory.
+  """
+  memory: Price!
 }
 
 """
@@ -1114,7 +1567,7 @@ type DeleteJobPayload {
   team: Team
 
   """
-  Whether or not the application was deleted.
+  Whether or not the job was deleted.
   """
   success: Boolean
 }
@@ -1143,19 +1596,183 @@ type DeleteSecretPayload {
   secretDeleted: Boolean
 }
 
+input DeleteServiceAccountInput {
+  """
+  The ID of the service account to delete.
+  """
+  serviceAccountID: ID!
+}
+
+type DeleteServiceAccountPayload {
+  """
+  Whether or not the service account was deleted.
+  """
+  serviceAccountDeleted: Boolean
+}
+
+input DeleteServiceAccountTokenInput {
+  """
+  The ID of the service account token to delete.
+  """
+  serviceAccountTokenID: ID!
+}
+
+type DeleteServiceAccountTokenPayload {
+  """
+  The service account that the token belonged to.
+  """
+  serviceAccount: ServiceAccount
+
+  """
+  Whether or not the service account token was deleted.
+  """
+  serviceAccountTokenDeleted: Boolean
+}
+
 """
 Description of a deployment.
-DO NOT USE
-This type is a work in progress, and will be changed in the future.
 """
 type Deployment implements Node {
+  """
+  ID of the deployment.
+  """
   id: ID!
-  team: Team!
-  resources: [DeploymentResource!]!
-  environment: TeamEnvironment!
-  statuses: [DeploymentStatus!]!
-  created: Time!
-  repository: String!
+
+  """
+  Creation timestamp of the deployment.
+  """
+  createdAt: Time!
+
+  """
+  Team slug that the deployment belongs to.
+  """
+  teamSlug: Slug!
+
+  """
+  Name of the environment that the deployment belongs to.
+  """
+  environmentName: String!
+
+  """
+  The repository that triggered the deployment.
+  """
+  repository: String
+
+  """
+  Username of the actor who initiated the deployment.
+  """
+  deployerUsername: String
+
+  """
+  The git commit SHA that was deployed.
+  """
+  commitSha: String
+
+  """
+  The URL of the workflow that triggered the deployment.
+  """
+  triggerUrl: String
+
+  """
+  Resources that were deployed.
+  """
+  resources(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): DeploymentResourceConnection!
+
+  """
+  Statuses of the deployment.
+  """
+  statuses(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): DeploymentStatusConnection!
+}
+
+type DeploymentActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug!
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the update.
+  """
+  data: DeploymentActivityLogEntryData!
+}
+
+type DeploymentActivityLogEntryData {
+  triggerURL: String
 }
 
 type DeploymentConnection {
@@ -1188,39 +1805,6 @@ type DeploymentEdge {
 }
 
 """
-Deployment information for a workload.
-DO NOT USE
-This is a work in progress, and will be changed in the future.
-"""
-type DeploymentInfo {
-  deployer: String
-  timestamp: Time
-  commitSha: String
-  url: String
-  history(
-    """
-    Get the first n items in the connection. This can be used in combination with the after parameter.
-    """
-    first: Int
-
-    """
-    Get items after this cursor.
-    """
-    after: Cursor
-
-    """
-    Get the last n items in the connection. This can be used in combination with the before parameter.
-    """
-    last: Int
-
-    """
-    Get items before this cursor.
-    """
-    before: Cursor
-  ): DeploymentConnection!
-}
-
-"""
 Deployment key type.
 """
 type DeploymentKey implements Node {
@@ -1246,25 +1830,119 @@ type DeploymentKey implements Node {
 }
 
 """
-DO NOT USE
-This type is a work in progress, and will be changed in the future.
+Resource connected to a deployment.
 """
-type DeploymentResource {
-  group: String!
+type DeploymentResource implements Node {
+  """
+  Globally unique ID of the deployment resource.
+  """
+  id: ID!
+
+  """
+  Deployment resource kind.
+  """
   kind: String!
+
+  """
+  The name of the resource.
+  """
   name: String!
-  version: String!
-  namespace: String!
+}
+
+type DeploymentResourceConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [DeploymentResource!]!
+
+  """
+  List of edges.
+  """
+  edges: [DeploymentResourceEdge!]!
+}
+
+type DeploymentResourceEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The deployment resource.
+  """
+  node: DeploymentResource!
 }
 
 """
-DO NOT USE
-This type is a work in progress, and will be changed in the future.
+Resource connected to a deployment.
 """
-type DeploymentStatus {
-  status: String!
-  message: String
-  created: Time!
+type DeploymentStatus implements Node {
+  """
+  Globally unique ID of the deployment resource.
+  """
+  id: ID!
+
+  """
+  Creation timestamp of the deployment status.
+  """
+  createdAt: Time!
+
+  """
+  State of the deployment.
+  """
+  state: DeploymentStatusState!
+
+  """
+  Message describing the deployment status.
+  """
+  message: String!
+}
+
+type DeploymentStatusConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [DeploymentStatus!]!
+
+  """
+  List of edges.
+  """
+  edges: [DeploymentStatusEdge!]!
+}
+
+type DeploymentStatusEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The deployment status.
+  """
+  node: DeploymentStatus!
+}
+
+"""
+Possible states of a deployment status.
+"""
+enum DeploymentStatusState {
+  SUCCESS
+  ERROR
+  FAILURE
+  INACTIVE
+  IN_PROGRESS
+  QUEUED
+  PENDING
 }
 
 input DisableReconcilerInput {
@@ -1291,6 +1969,153 @@ type EntraIDAuthIntegration implements AuthIntegration {
   The name of the integration.
   """
   name: String!
+}
+
+"""
+An environment represents a runtime environment for workloads.
+
+Learn more in the [official Nais documentation](https://docs.nais.io/workloads/explanations/environment/).
+"""
+type Environment implements Node {
+  """
+  The globally unique ID of the team.
+  """
+  id: ID!
+
+  """
+  Unique name of the environment.
+  """
+  name: String!
+
+  """
+  Nais workloads in the environment.
+  """
+  workloads(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: EnvironmentWorkloadOrder
+  ): WorkloadConnection!
+}
+
+"""
+Environment connection.
+"""
+type EnvironmentConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [Environment!]!
+
+  """
+  List of edges.
+  """
+  edges: [EnvironmentEdge!]!
+}
+
+"""
+Environment edge.
+"""
+type EnvironmentEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The Environment.
+  """
+  node: Environment!
+}
+
+"""
+Ordering options when fetching environments.
+"""
+input EnvironmentOrder {
+  """
+  The field to order by.
+  """
+  field: EnvironmentOrderField!
+
+  """
+  The direction to order in.
+  """
+  direction: OrderDirection!
+}
+
+"""
+Fields to order environments by.
+"""
+enum EnvironmentOrderField {
+  """
+  Order by name.
+  """
+  NAME
+}
+
+"""
+Ordering options when fetching workloads in an environment.
+"""
+input EnvironmentWorkloadOrder {
+  """
+  The field to order items by.
+  """
+  field: EnvironmentWorkloadOrderField!
+
+  """
+  The direction to order items by.
+  """
+  direction: OrderDirection!
+}
+
+"""
+Fields to order workloads in an environment by.
+"""
+enum EnvironmentWorkloadOrderField {
+  """
+  Order by name.
+  """
+  NAME
+
+  """
+  Order by team slug.
+  """
+  TEAM_SLUG
+
+  """
+  Order by status.
+  """
+  STATUS
+
+  """
+  Order by the deployment time.
+  """
+  DEPLOYMENT_TIME
 }
 
 type ExternalNetworkPolicyHost implements ExternalNetworkPolicyTarget {
@@ -1332,18 +2157,6 @@ type FeatureOpenSearch implements Node {
   enabled: Boolean!
 }
 
-type FeatureRedis implements Node {
-  """
-  Unique identifier for the feature.
-  """
-  id: ID!
-
-  """
-  Wether Redis is enabled or not.
-  """
-  enabled: Boolean!
-}
-
 type FeatureUnleash implements Node {
   """
   Unique identifier for the feature.
@@ -1352,6 +2165,18 @@ type FeatureUnleash implements Node {
 
   """
   Wether Unleash is enabled or not.
+  """
+  enabled: Boolean!
+}
+
+type FeatureValkey implements Node {
+  """
+  Unique identifier for the feature.
+  """
+  id: ID!
+
+  """
+  Wether Valkey is enabled or not.
   """
   enabled: Boolean!
 }
@@ -1368,9 +2193,9 @@ type Features implements Node {
   unleash: FeatureUnleash!
 
   """
-  Information about Redis feature.
+  Information about Valkey feature.
   """
-  redis: FeatureRedis!
+  valkey: FeatureValkey!
 
   """
   Information about Kafka feature.
@@ -1547,6 +2372,13 @@ type ImageVulnerabilityEdge {
   node: ImageVulnerability!
 }
 
+type ImageVulnerabilityHistory {
+  """
+  Vulnerability summary samples.
+  """
+  samples: [ImageVulnerabilitySample!]!
+}
+
 """
 Ordering options when fetching teams.
 """
@@ -1568,6 +2400,18 @@ enum ImageVulnerabilityOrderField {
   PACKAGE
   STATE
   SUPPRESSED
+}
+
+type ImageVulnerabilitySample {
+  """
+  The historic image vulnerability summary
+  """
+  summary: ImageVulnerabilitySummary!
+
+  """
+  Timestamp of the vulnerability summary.
+  """
+  date: Time!
 }
 
 enum ImageVulnerabilitySeverity {
@@ -1620,6 +2464,11 @@ type ImageVulnerabilitySummary {
   Number of vulnerabilities with severity UNASSIGNED.
   """
   unassigned: Int!
+
+  """
+  Timestamp of the last update of the vulnerability summary.
+  """
+  lastUpdated: Time!
 }
 
 type InboundNetworkPolicy {
@@ -1665,6 +2514,12 @@ type Job implements Node & Workload {
   The environment the job is deployed in.
   """
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The team environment for the job.
+  """
+  teamEnvironment: TeamEnvironment!
 
   """
   The container image of the job.
@@ -1717,6 +2572,41 @@ type Job implements Node & Workload {
   manifest: JobManifest!
 
   """
+  If set, when the job was marked for deletion.
+  """
+  deletionStartedAt: Time
+
+  """
+  Activity log associated with the job.
+  """
+  activityLog(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+
+    """
+    Filter items.
+    """
+    filter: ActivityLogFilter
+  ): ActivityLogEntryConnection!
+
+  """
   BigQuery datasets referenced by the job. This does not currently support pagination, but will return all available datasets.
   """
   bigQueryDatasets(
@@ -1742,11 +2632,29 @@ type Job implements Node & Workload {
   cost: WorkloadCost!
 
   """
-  Deployment information for the job.
-  DO NOT USE
-  This is a work in progress, and will be changed in the future.
+  List of deployments for the job.
   """
-  deploymentInfo: DeploymentInfo!
+  deployments(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): DeploymentConnection!
 
   """
   Kafka topics the job has access to. This does not currently support pagination, but will return all available Kafka topics.
@@ -1759,6 +2667,11 @@ type Job implements Node & Workload {
   ): KafkaTopicAclConnection!
 
   """
+  List of log destinations for the job.
+  """
+  logDestinations: [LogDestination!]!
+
+  """
   Network policies for the job.
   """
   networkPolicy: NetworkPolicy!
@@ -1767,16 +2680,6 @@ type Job implements Node & Workload {
   OpenSearch instance referenced by the workload.
   """
   openSearch: OpenSearch
-
-  """
-  Redis instances referenced by the job. This does not currently support pagination, but will return all available Redis instances.
-  """
-  redisInstances(
-    """
-    Ordering options for items returned from the connection.
-    """
-    orderBy: RedisInstanceOrder
-  ): RedisInstanceConnection!
 
   """
   Secrets used by the job.
@@ -1817,6 +2720,26 @@ type Job implements Node & Workload {
   Status of the job
   """
   status: WorkloadStatus!
+
+  """
+  Valkey instances referenced by the job. This does not currently support pagination, but will return all available Valkey instances.
+  """
+  valkeyInstances(
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: ValkeyInstanceOrder
+  ): ValkeyInstanceConnection!
+
+  """
+  Get the vulnerability summary history for job.
+  """
+  imageVulnerabilityHistory(
+    """
+    Get vulnerability summary from given date until today.
+    """
+    from: Date!
+  ): ImageVulnerabilityHistory!
 }
 
 union JobAuthIntegrations = EntraIDAuthIntegration | MaskinportenAuthIntegration
@@ -1998,6 +2921,7 @@ type JobRun implements Node {
     """
     before: Cursor
   ): JobRunInstanceConnection!
+  trigger: JobRunTrigger!
 }
 
 type JobRunConnection {
@@ -2109,6 +3033,23 @@ type JobRunStatus {
   message: String!
 }
 
+type JobRunTrigger {
+  """
+  The type of trigger that started the job.
+  """
+  type: JobRunTriggerType!
+
+  """
+  The actor/user who triggered the job run manually, if applicable.
+  """
+  actor: String
+}
+
+enum JobRunTriggerType {
+  AUTOMATIC
+  MANUAL
+}
+
 type JobSchedule {
   """
   The cron expression for the job.
@@ -2185,6 +3126,8 @@ type KafkaTopic implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
   acl(
     first: Int
     after: Cursor
@@ -2220,6 +3163,7 @@ type KafkaTopicAclEdge {
 input KafkaTopicAclFilter {
   team: Slug
   workload: String
+  validWorkloads: Boolean
 }
 
 input KafkaTopicAclOrder {
@@ -2266,6 +3210,32 @@ enum KafkaTopicOrderField {
   ENVIRONMENT
 }
 
+interface LogDestination {
+  """
+  The globally unique ID of the log destination.
+  """
+  id: ID!
+}
+
+type LogDestinationLoki implements LogDestination & Node {
+  """
+  The globally unique ID of the log destination.
+  """
+  id: ID!
+
+  """
+  Grafana URL to view the logs.
+  """
+  grafanaURL: String!
+}
+
+type LogDestinationSecureLogs implements LogDestination & Node {
+  """
+  The globally unique ID of the log destination.
+  """
+  id: ID!
+}
+
 """
 Maskinporten authentication.
 
@@ -2279,7 +3249,7 @@ type MaskinportenAuthIntegration implements AuthIntegration {
 }
 
 """
-The mutation root for the NAIS GraphQL API.
+The mutation root for the Nais GraphQL API.
 """
 type Mutation {
   """
@@ -2378,21 +3348,98 @@ type Mutation {
   deleteSecret(input: DeleteSecretInput!): DeleteSecretPayload!
 
   """
-  Create a new NAIS team
+  Create a service account.
+  """
+  createServiceAccount(
+    input: CreateServiceAccountInput!
+  ): CreateServiceAccountPayload!
+
+  """
+  Update a service account.
+  """
+  updateServiceAccount(
+    input: UpdateServiceAccountInput!
+  ): UpdateServiceAccountPayload!
+
+  """
+  Delete a service account.
+  """
+  deleteServiceAccount(
+    input: DeleteServiceAccountInput!
+  ): DeleteServiceAccountPayload!
+
+  """
+  Assign a role to a service account.
+  """
+  assignRoleToServiceAccount(
+    input: AssignRoleToServiceAccountInput!
+  ): AssignRoleToServiceAccountPayload!
+
+  """
+  Revoke a role from a service account.
+  """
+  revokeRoleFromServiceAccount(
+    input: RevokeRoleFromServiceAccountInput!
+  ): RevokeRoleFromServiceAccountPayload!
+
+  """
+  Create a service account token.
+
+  The secret is automatically generated, and is returned as a part of the payload for this mutation. The secret can
+  not be retrieved at a later stage.
+
+  A service account can have multiple active tokens at the same time.
+  """
+  createServiceAccountToken(
+    input: CreateServiceAccountTokenInput!
+  ): CreateServiceAccountTokenPayload!
+
+  """
+  Update a service account token.
+
+  Note that the secret itself can not be updated, only the metadata.
+  """
+  updateServiceAccountToken(
+    input: UpdateServiceAccountTokenInput!
+  ): UpdateServiceAccountTokenPayload!
+
+  """
+  Delete a service account token.
+  """
+  deleteServiceAccountToken(
+    input: DeleteServiceAccountTokenInput!
+  ): DeleteServiceAccountTokenPayload!
+
+  """
+  Start maintenance updates for a Valkey instance.
+  """
+  startValkeyMaintenance(
+    input: StartValkeyMaintenanceInput!
+  ): StartValkeyMaintenancePayload
+
+  """
+  Start maintenance updates for an OpenSearch instance.
+  """
+  startOpenSearchMaintenance(
+    input: StartOpenSearchMaintenanceInput!
+  ): StartOpenSearchMaintenancePayload
+
+  """
+  Create a new Nais team
 
   The user creating the team will be granted team ownership, unless the user is a service account, in which case the
   team will not get an initial owner. To add one or more owners to the team, refer to the `addTeamOwners` mutation.
 
-  Creation of a team will also create external resources for the team, which will be managed by the NAIS API
+  Creation of a team will also create external resources for the team, which will be managed by the Nais API
   reconcilers. This will be done asynchronously.
 
-  Refer to the [official NAIS documentation](https://docs.nais.io/explanations/team/) for more information regarding
-  NAIS teams.
+  Refer to the [official Nais documentation](https://docs.nais.io/explanations/team/) for more information regarding
+  Nais teams.
   """
   createTeam(input: CreateTeamInput!): CreateTeamPayload!
 
   """
-  Update an existing NAIS team
+  Update an existing Nais team
 
   This mutation can be used to update the team purpose and the main Slack channel. It is not possible to update the
   team slug.
@@ -2424,7 +3471,7 @@ type Mutation {
   Confirm a team deletion
 
   This will start the actual team deletion process, which will be done in an asynchronous manner. All external
-  entities controlled by NAIS will also be deleted.
+  entities controlled by Nais will also be deleted.
 
   WARNING: There is no going back after starting this process.
 
@@ -2516,6 +3563,9 @@ type OpenSearch implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
+  terminationProtection: Boolean!
   status: OpenSearchStatus!
   workload: Workload
   access(
@@ -2526,6 +3576,11 @@ type OpenSearch implements Persistence & Node {
     orderBy: OpenSearchAccessOrder
   ): OpenSearchAccessConnection!
   cost: OpenSearchCost!
+
+  """
+  Fetch maintenances updates for the OpenSearch instance.
+  """
+  maintenance: OpenSearchMaintenance!
 }
 
 type OpenSearchAccess {
@@ -2567,6 +3622,81 @@ type OpenSearchCost {
 type OpenSearchEdge {
   cursor: Cursor!
   node: OpenSearch!
+}
+
+type OpenSearchMaintenance {
+  updates(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): OpenSearchMaintenanceUpdateConnection!
+}
+
+type OpenSearchMaintenanceUpdate implements ServiceMaintenanceUpdate {
+  """
+  Title of the maintenance.
+  """
+  title: String!
+
+  """
+  Description of the maintenance.
+  """
+  description: String!
+
+  """
+  Deadline for installing the maintenance. If set, maintenance is mandatory and will be forcibly applied.
+  """
+  deadline: Time
+
+  """
+  The time when the update will be automatically applied. If set, maintenance is mandatory and will be forcibly applied.
+  """
+  startAt: Time
+}
+
+type OpenSearchMaintenanceUpdateConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [OpenSearchMaintenanceUpdate!]!
+
+  """
+  List of edges.
+  """
+  edges: [OpenSearchMaintenanceUpdateEdge!]!
+}
+
+type OpenSearchMaintenanceUpdateEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The OpenSearchMaintenanceUpdate.
+  """
+  node: OpenSearchMaintenanceUpdate!
 }
 
 input OpenSearchOrder {
@@ -2650,10 +3780,16 @@ interface Persistence {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
+}
+
+type Price {
+  value: Float!
 }
 
 """
-The query root for the NAIS GraphQL API.
+The query root for the Nais GraphQL API.
 """
 type Query {
   """
@@ -2665,11 +3801,72 @@ type Query {
     """
     id: ID!
   ): Node
+  roles(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): RoleConnection!
+
+  """
+  Get the monthly cost summary for a tenant.
+  """
+  costMonthlySummary(
+    """
+    Start month of the period, inclusive.
+    """
+    from: Date!
+
+    """
+    End month of the period, inclusive.
+    """
+    to: Date!
+  ): CostMonthlySummary!
+
+  """
+  Get a list of environments.
+  """
+  environments(
+    """
+    Ordering options for environments.
+    """
+    orderBy: EnvironmentOrder
+  ): EnvironmentConnection!
+
+  """
+  Get a single environment.
+  """
+  environment(
+    """
+    The name of the environment to get.
+    """
+    name: String!
+  ): Environment!
 
   """
   Feature flags.
   """
   features: Features!
+
+  """
+  Get current prices for resources.
+  """
+  currentUnitPrices: CurrentUnitPrices!
 
   """
   Get a collection of reconcilers.
@@ -2727,6 +3924,41 @@ type Query {
   ): SearchNodeConnection!
 
   """
+  Get a list of service accounts.
+  """
+  serviceAccounts(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): ServiceAccountConnection!
+
+  """
+  Returns a service account by its ID.
+  """
+  serviceAccount(
+    """
+    ID of the service account.
+    """
+    id: ID!
+  ): ServiceAccount!
+
+  """
   Get a list of teams.
   """
   teams(
@@ -2754,6 +3986,11 @@ type Query {
     Ordering options for items returned from the connection.
     """
     orderBy: TeamOrder
+
+    """
+    Filter options for the teams returned from the connection.
+    """
+    filter: TeamFilter
   ): TeamConnection!
 
   """
@@ -2800,9 +4037,49 @@ type Query {
   The currently authenticated user.
   """
   me: AuthenticatedUser!
+
+  """
+  Log entries from the user sync process.
+  """
+  userSyncLog(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): UserSyncLogEntryConnection!
   teamsUtilization(
     resourceType: UtilizationResourceType!
   ): [TeamUtilizationData!]!
+
+  """
+  Get the vulnerability summary history for all teams.
+  """
+  imageVulnerabilityHistory(
+    """
+    Get vulnerability summary from given date until today.
+    """
+    from: Date!
+  ): ImageVulnerabilityHistory!
+
+  """
+  Get the vulnerability summary for the tenant.
+  """
+  vulnerabilitySummary: TenantVulnerabilitySummary!
 }
 
 """
@@ -2892,6 +4169,11 @@ type Reconciler implements Node {
     Get items before this cursor.
     """
     before: Cursor
+
+    """
+    Filter items.
+    """
+    filter: ActivityLogFilter
   ): ActivityLogEntryConnection!
 }
 
@@ -3112,10 +4394,30 @@ type ReconcilerEnabledActivityLogEntry implements ActivityLogEntry & Node {
   environmentName: String
 }
 
-type ReconcilerError {
+type ReconcilerError implements Node {
+  """
+  Unique identifier for the reconciler error.
+  """
+  id: ID!
+
+  """
+  The correlation ID for the reconciler error.
+  """
   correlationID: String!
+
+  """
+  Creation timestamp of the reconciler error.
+  """
   createdAt: Time!
+
+  """
+  The error message itself.
+  """
   message: String!
+
+  """
+  The team that the error belongs to.
+  """
   team: Team!
 }
 
@@ -3146,78 +4448,6 @@ type ReconcilerErrorEdge {
   The reconcilerError.
   """
   node: ReconcilerError!
-}
-
-type RedisInstance implements Persistence & Node {
-  id: ID!
-  name: String!
-  team: Team!
-  environment: TeamEnvironment!
-  access(
-    first: Int
-    after: Cursor
-    last: Int
-    before: Cursor
-    orderBy: RedisInstanceAccessOrder
-  ): RedisInstanceAccessConnection!
-  workload: Workload
-  status: RedisInstanceStatus!
-  cost: RedisInstanceCost!
-}
-
-type RedisInstanceAccess {
-  workload: Workload!
-  access: String!
-}
-
-type RedisInstanceAccessConnection {
-  pageInfo: PageInfo!
-  nodes: [RedisInstanceAccess!]!
-  edges: [RedisInstanceAccessEdge!]!
-}
-
-type RedisInstanceAccessEdge {
-  cursor: Cursor!
-  node: RedisInstanceAccess!
-}
-
-input RedisInstanceAccessOrder {
-  field: RedisInstanceAccessOrderField!
-  direction: OrderDirection!
-}
-
-enum RedisInstanceAccessOrderField {
-  ACCESS
-  WORKLOAD
-}
-
-type RedisInstanceConnection {
-  pageInfo: PageInfo!
-  nodes: [RedisInstance!]!
-  edges: [RedisInstanceEdge!]!
-}
-
-type RedisInstanceCost {
-  sum: Float!
-}
-
-type RedisInstanceEdge {
-  cursor: Cursor!
-  node: RedisInstance!
-}
-
-input RedisInstanceOrder {
-  field: RedisInstanceOrderField!
-  direction: OrderDirection!
-}
-
-enum RedisInstanceOrderField {
-  NAME
-  ENVIRONMENT
-}
-
-type RedisInstanceStatus {
-  state: String!
 }
 
 input RemoveRepositoryFromTeamInput {
@@ -3482,6 +4712,25 @@ type RestartApplicationPayload {
   application: Application
 }
 
+input RevokeRoleFromServiceAccountInput {
+  """
+  The ID of the service account to revoke the role from.
+  """
+  serviceAccountID: ID!
+
+  """
+  The name of the role to revoke.
+  """
+  roleName: String!
+}
+
+type RevokeRoleFromServiceAccountPayload {
+  """
+  The service account that had a role revoked.
+  """
+  serviceAccount: ServiceAccount
+}
+
 input RevokeTeamAccessToUnleashInput {
   teamSlug: Slug!
   revokedTeamSlug: Slug!
@@ -3489,6 +4738,252 @@ input RevokeTeamAccessToUnleashInput {
 
 type RevokeTeamAccessToUnleashPayload {
   unleash: UnleashInstance
+}
+
+type Role implements Node {
+  """
+  The globally unique ID of the role.
+  """
+  id: ID!
+
+  """
+  Name of the role.
+  """
+  name: String!
+
+  """
+  Description of the role.
+  """
+  description: String!
+}
+
+type RoleAssignedToServiceAccountActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: RoleAssignedToServiceAccountActivityLogEntryData!
+}
+
+type RoleAssignedToServiceAccountActivityLogEntryData {
+  """
+  The added role.
+  """
+  roleName: String!
+}
+
+"""
+Assigned role to user log entry.
+"""
+type RoleAssignedUserSyncLogEntry implements UserSyncLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the user that was assigned a role.
+  """
+  userID: ID!
+
+  """
+  The name of the user that was assigned a role.
+  """
+  userName: String!
+
+  """
+  The email address of the user that was assigned a role.
+  """
+  userEmail: String!
+
+  """
+  The name of the assigned role.
+  """
+  roleName: String!
+}
+
+type RoleConnection {
+  """
+  A list of roles.
+  """
+  nodes: [Role!]!
+
+  """
+  A list of role edges.
+  """
+  edges: [RoleEdge!]!
+
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type RoleEdge {
+  """
+  The role.
+  """
+  node: Role!
+
+  """
+  A cursor for use in pagination.
+  """
+  cursor: Cursor!
+}
+
+type RoleRevokedFromServiceAccountActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: RoleRevokedFromServiceAccountActivityLogEntryData!
+}
+
+type RoleRevokedFromServiceAccountActivityLogEntryData {
+  """
+  The removed role.
+  """
+  roleName: String!
+}
+
+"""
+Revoked role from user log entry.
+"""
+type RoleRevokedUserSyncLogEntry implements UserSyncLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the user that got a role revoked.
+  """
+  userID: ID!
+
+  """
+  The name of the user that got a role revoked.
+  """
+  userName: String!
+
+  """
+  The email address of the user that got a role revoked.
+  """
+  userEmail: String!
+
+  """
+  The name of the revoked role.
+  """
+  roleName: String!
+}
+
+enum ScalingDirection {
+  """
+  The scaling direction is up.
+  """
+  UP
+
+  """
+  The scaling direction is down.
+  """
+  DOWN
 }
 
 """
@@ -3522,8 +5017,8 @@ union SearchNode =
   | Job
   | KafkaTopic
   | OpenSearch
-  | RedisInstance
   | SqlInstance
+  | ValkeyInstance
 
 """
 Search node connection.
@@ -3578,8 +5073,8 @@ enum SearchType {
   JOB
   KAFKA_TOPIC
   OPENSEARCH
-  REDIS_INSTANCE
   SQL_INSTANCE
+  VALKEY_INSTANCE
 }
 
 """
@@ -3600,6 +5095,12 @@ type Secret implements Node {
   The environment the secret exists in.
   """
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The environment the secret exists in.
+  """
+  teamEnvironment: TeamEnvironment!
 
   """
   The team that owns the secret.
@@ -4036,9 +5537,11 @@ type SecretValueUpdatedActivityLogEntryData {
 }
 
 """
-Service account type.
+The service account type represents machine-users of the Nais API.
 
-This is a work in progress, and will be changed in the future.
+These types of users can be used to automate certain parts of the API, for instance team creation and managing team members.
+
+Service accounts are created using the `createServiceAccount` mutation, and authenticate using tokens generated by the `createServiceAccountToken` mutation.
 """
 type ServiceAccount implements Node {
   """
@@ -4050,6 +5553,510 @@ type ServiceAccount implements Node {
   The name of the service account.
   """
   name: String!
+
+  """
+  The description of the service account.
+  """
+  description: String!
+
+  """
+  Creation time of the service account.
+  """
+  createdAt: Time!
+
+  """
+  When the service account was last updated.
+  """
+  updatedAt: Time!
+
+  """
+  When the service account was last used for authentication.
+  """
+  lastUsedAt: Time
+
+  """
+  The team that the service account belongs to.
+  """
+  team: Team
+
+  """
+  The roles that are assigned to the service account.
+  """
+  roles(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): RoleConnection!
+
+  """
+  The service account tokens.
+  """
+  tokens(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): ServiceAccountTokenConnection!
+}
+
+type ServiceAccountConnection {
+  """
+  A list of service accounts.
+  """
+  nodes: [ServiceAccount!]!
+
+  """
+  A list of edges.
+  """
+  edges: [ServiceAccountEdge!]!
+
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type ServiceAccountCreatedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+}
+
+type ServiceAccountDeletedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+}
+
+type ServiceAccountEdge {
+  """
+  The service account.
+  """
+  node: ServiceAccount!
+
+  """
+  A cursor for use in pagination.
+  """
+  cursor: Cursor!
+}
+
+type ServiceAccountToken implements Node {
+  """
+  The globally unique ID of the service account token.
+  """
+  id: ID!
+
+  """
+  The name of the service account token.
+  """
+  name: String!
+
+  """
+  The description of the service account token.
+  """
+  description: String!
+
+  """
+  When the service account token was created.
+  """
+  createdAt: Time!
+
+  """
+  When the service account token was last updated.
+  """
+  updatedAt: Time!
+
+  """
+  When the service account token was last used for authentication.
+  """
+  lastUsedAt: Time
+
+  """
+  Expiry date of the token. If this value is empty the token never expires.
+  """
+  expiresAt: Date
+}
+
+type ServiceAccountTokenConnection {
+  """
+  A list of service accounts tokens.
+  """
+  nodes: [ServiceAccountToken!]!
+
+  """
+  A list of edges.
+  """
+  edges: [ServiceAccountTokenEdge!]!
+
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type ServiceAccountTokenCreatedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: ServiceAccountTokenCreatedActivityLogEntryData!
+}
+
+type ServiceAccountTokenCreatedActivityLogEntryData {
+  """
+  The name of the service account token.
+  """
+  tokenName: String!
+}
+
+type ServiceAccountTokenDeletedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: ServiceAccountTokenDeletedActivityLogEntryData!
+}
+
+type ServiceAccountTokenDeletedActivityLogEntryData {
+  """
+  The name of the service account token.
+  """
+  tokenName: String!
+}
+
+type ServiceAccountTokenEdge {
+  """
+  The service account token.
+  """
+  node: ServiceAccountToken!
+
+  """
+  A cursor for use in pagination.
+  """
+  cursor: Cursor!
+}
+
+type ServiceAccountTokenUpdatedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: ServiceAccountTokenUpdatedActivityLogEntryData!
+}
+
+type ServiceAccountTokenUpdatedActivityLogEntryData {
+  """
+  Fields that were updated.
+  """
+  updatedFields: [ServiceAccountTokenUpdatedActivityLogEntryDataUpdatedField!]!
+}
+
+type ServiceAccountTokenUpdatedActivityLogEntryDataUpdatedField {
+  """
+  The name of the field.
+  """
+  field: String!
+
+  """
+  The old value of the field.
+  """
+  oldValue: String
+
+  """
+  The new value of the field.
+  """
+  newValue: String
+}
+
+type ServiceAccountUpdatedActivityLogEntry implements ActivityLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+  """
+  actor: String!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the entry.
+  """
+  message: String!
+
+  """
+  Type of the resource that was affected by the action.
+  """
+  resourceType: ActivityLogEntryResourceType!
+
+  """
+  Name of the resource that was affected by the action.
+  """
+  resourceName: String!
+
+  """
+  The team slug that the entry belongs to.
+  """
+  teamSlug: Slug
+
+  """
+  The environment name that the entry belongs to.
+  """
+  environmentName: String
+
+  """
+  Data associated with the entry.
+  """
+  data: ServiceAccountUpdatedActivityLogEntryData!
+}
+
+type ServiceAccountUpdatedActivityLogEntryData {
+  """
+  Fields that were updated.
+  """
+  updatedFields: [ServiceAccountUpdatedActivityLogEntryDataUpdatedField!]!
+}
+
+type ServiceAccountUpdatedActivityLogEntryDataUpdatedField {
+  """
+  The name of the field.
+  """
+  field: String!
+
+  """
+  The old value of the field.
+  """
+  oldValue: String
+
+  """
+  The new value of the field.
+  """
+  newValue: String
 }
 
 type ServiceCostSample {
@@ -4079,6 +6086,18 @@ type ServiceCostSeries {
   The cost for the services used by the workload.
   """
   services: [ServiceCostSample!]!
+}
+
+interface ServiceMaintenanceUpdate {
+  """
+  Title of the maintenance.
+  """
+  title: String!
+
+  """
+  Description of the maintenance.
+  """
+  description: String
 }
 
 input SetTeamMemberRoleInput {
@@ -4127,6 +6146,8 @@ type SqlDatabase implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
   charset: String
   collation: String
   deletionPolicy: String
@@ -4138,6 +6159,8 @@ type SqlInstance implements Persistence & Node {
   name: String!
   team: Team!
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
   workload: Workload
   cascadingDelete: Boolean!
   connectionName: String
@@ -4293,6 +6316,26 @@ enum SqlInstanceUserOrderField {
   AUTHENTICATION
 }
 
+input StartOpenSearchMaintenanceInput {
+  serviceName: String!
+  teamSlug: Slug!
+  environmentName: String!
+}
+
+type StartOpenSearchMaintenancePayload {
+  error: String
+}
+
+input StartValkeyMaintenanceInput {
+  serviceName: String!
+  teamSlug: Slug!
+  environmentName: String!
+}
+
+type StartValkeyMaintenancePayload {
+  error: String
+}
+
 type Subscription {
   """
   Subscribe to workload logs
@@ -4305,11 +6348,11 @@ type Subscription {
 }
 
 """
-The team type represents a team on the [NAIS platform](https://nais.io/).
+The team type represents a team on the [Nais platform](https://nais.io/).
 
-Learn more about what NAIS teams are and what they can be used for in the [official NAIS documentation](https://docs.nais.io/explanations/team/).
+Learn more about what Nais teams are and what they can be used for in the [official Nais documentation](https://docs.nais.io/explanations/team/).
 
-External resources (e.g. entraIDGroupID, gitHubTeamSlug) are managed by [NAIS API reconcilers](https://github.com/nais/api-reconcilers).
+External resources (e.g. entraIDGroupID, gitHubTeamSlug) are managed by [Nais API reconcilers](https://github.com/nais/api-reconcilers).
 """
 type Team implements Node {
   """
@@ -4435,10 +6478,15 @@ type Team implements Node {
     Get items before this cursor.
     """
     before: Cursor
+
+    """
+    Filter items.
+    """
+    filter: ActivityLogFilter
   ): ActivityLogEntryConnection!
 
   """
-  NAIS applications owned by the team.
+  Nais applications owned by the team.
   """
   applications(
     """
@@ -4543,9 +6591,7 @@ type Team implements Node {
   deploymentKey: DeploymentKey
 
   """
-  List of deployments for the team.
-  DO NOT USE
-  This is a work in progress, and will be changed in the future.
+  List deployments for a team.
   """
   deployments(
     """
@@ -4570,7 +6616,7 @@ type Team implements Node {
   ): DeploymentConnection!
 
   """
-  NAIS jobs owned by the team.
+  Nais jobs owned by the team.
   """
   jobs(
     """
@@ -4663,36 +6709,6 @@ type Team implements Node {
     """
     orderBy: OpenSearchOrder
   ): OpenSearchConnection!
-
-  """
-  Redis instances owned by the team.
-  """
-  redisInstances(
-    """
-    Get the first n items in the connection. This can be used in combination with the after parameter.
-    """
-    first: Int
-
-    """
-    Get items after this cursor.
-    """
-    after: Cursor
-
-    """
-    Get the last n items in the connection. This can be used in combination with the before parameter.
-    """
-    last: Int
-
-    """
-    Get items before this cursor.
-    """
-    before: Cursor
-
-    """
-    Ordering options for items returned from the connection.
-    """
-    orderBy: RedisInstanceOrder
-  ): RedisInstanceConnection!
   repositories(
     """
     Get the first n items in the connection. This can be used in combination with the after parameter.
@@ -4790,12 +6806,87 @@ type Team implements Node {
     resourceType: UtilizationResourceType!
   ): [WorkloadUtilizationData]!
   serviceUtilization: TeamServiceUtilization!
+
+  """
+  Valkey instances owned by the team.
+  """
+  valkeyInstances(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: ValkeyInstanceOrder
+  ): ValkeyInstanceConnection!
+
+  """
+  Get the vulnerability summary history for team.
+  """
+  imageVulnerabilityHistory(
+    """
+    Get vulnerability summary from given date until today.
+    """
+    from: Date!
+  ): ImageVulnerabilityHistory!
   vulnerabilitySummary(
     filter: TeamVulnerabilitySummaryFilter
   ): TeamVulnerabilitySummary!
 
   """
-  NAIS Workloads owned by the team.
+  Fetch vulnerability summaries for workloads in the team.
+  """
+  vulnerabilitySummaries(
+    """
+    Filter the workloads by named environments.
+    """
+    filter: TeamVulnerabilitySummaryFilter
+
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: VulnerabilitySummaryOrder
+  ): WorkloadVulnerabilitySummaryConnection!
+
+  """
+  Nais workloads owned by the team.
   """
   workloads(
     """
@@ -4837,7 +6928,12 @@ input TeamApplicationsFilter {
   """
   Filter by the name of the application.
   """
-  name: String!
+  name: String
+
+  """
+  Filter by the name of the environment.
+  """
+  environments: [String!]
 }
 
 type TeamCDN {
@@ -5151,6 +7247,9 @@ type TeamEnvironment implements Node {
   Name of the team environment.
   """
   name: String!
+    @deprecated(
+      reason: "Use the `environment` field to get the environment name."
+    )
 
   """
   The GCP project ID for the team environment.
@@ -5168,7 +7267,7 @@ type TeamEnvironment implements Node {
   team: Team!
 
   """
-  NAIS application in the team environment.
+  Nais application in the team environment.
   """
   application(
     """
@@ -5193,7 +7292,12 @@ type TeamEnvironment implements Node {
   cost: TeamEnvironmentCost!
 
   """
-  NAIS job in the team environment.
+  Get the environment.
+  """
+  environment: Environment!
+
+  """
+  Nais job in the team environment.
   """
   job(name: String!): Job!
 
@@ -5208,11 +7312,6 @@ type TeamEnvironment implements Node {
   openSearchInstance(name: String!): OpenSearch!
 
   """
-  Redis instance in the team environment.
-  """
-  redisInstance(name: String!): RedisInstance!
-
-  """
   Get a secret by name.
   """
   secret(name: String!): Secret!
@@ -5221,6 +7320,11 @@ type TeamEnvironment implements Node {
   SQL instance in the team environment.
   """
   sqlInstance(name: String!): SqlInstance!
+
+  """
+  Valkey instance in the team environment.
+  """
+  valkeyInstance(name: String!): ValkeyInstance!
 
   """
   Workload in the team environment.
@@ -5357,6 +7461,16 @@ type TeamExternalResources {
   cdn: TeamCDN
 }
 
+"""
+Input for filtering teams.
+"""
+input TeamFilter {
+  """
+  Filter teams by the existence of workloads.
+  """
+  hasWorkloads: Boolean
+}
+
 type TeamGitHubTeam {
   """
   The slug of the GitHub team.
@@ -5389,7 +7503,7 @@ type TeamInventoryCountApplications {
 
   """
   Number of applications considered "not nais". When an application is considered "not nais", it means that the
-  application might not be working as expected, or that it is not following the NAIS guidelines.
+  application might not be working as expected, or that it is not following the Nais guidelines.
   """
   notNais: Int!
 }
@@ -5434,16 +7548,16 @@ type TeamInventoryCountOpenSearchInstances {
   total: Int!
 }
 
-type TeamInventoryCountRedisInstances {
+type TeamInventoryCountSqlInstances {
   """
-  Total number of Redis instances.
+  Total number of SQL instances.
   """
   total: Int!
 }
 
-type TeamInventoryCountSqlInstances {
+type TeamInventoryCountValkeyInstances {
   """
-  Total number of SQL instances.
+  Total number of Valkey instances.
   """
   total: Int!
 }
@@ -5458,12 +7572,20 @@ type TeamInventoryCounts {
   jobs: TeamInventoryCountJobs!
   kafkaTopics: TeamInventoryCountKafkaTopics!
   openSearchInstances: TeamInventoryCountOpenSearchInstances!
-  redisInstances: TeamInventoryCountRedisInstances!
   sqlInstances: TeamInventoryCountSqlInstances!
+  valkeyInstances: TeamInventoryCountValkeyInstances!
 }
 
 input TeamJobsFilter {
+  """
+  Filter by the name of the job.
+  """
   name: String!
+
+  """
+  Filter by the name of the environment.
+  """
+  environments: [String!]
 }
 
 type TeamMember {
@@ -5771,7 +7893,42 @@ enum TeamOrderField {
   """
   The unique slug of the team.
   """
-  TEAM_SLUG
+  SLUG
+
+  """
+  The accumulated risk score of the teams workloads.
+  """
+  RISK_SCORE
+
+  """
+  The accumulated number of critical vulnerabilities of the teams workloads.
+  """
+  CRITICAL_VULNERABILITIES
+
+  """
+  The accumulated number of high vulnerabilities of the teams workloads.
+  """
+  HIGH_VULNERABILITIES
+
+  """
+  The accumulated number of medium vulnerabilities of the teams workloads.
+  """
+  MEDIUM_VULNERABILITIES
+
+  """
+  The accumulated number of low vulnerabilities of the teams workloads.
+  """
+  LOW_VULNERABILITIES
+
+  """
+  The accumulated number of unassigned vulnerabilities of the teams workloads.
+  """
+  UNASSIGNED_VULNERABILITIES
+
+  """
+  The team's software bill of materials (SBOM) coverage.
+  """
+  SBOM_COVERAGE
 }
 
 input TeamRepositoryFilter {
@@ -5900,6 +8057,12 @@ type TeamUtilizationData {
   The environment for the utilization data.
   """
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The environment for the utilization data.
+  """
+  teamEnvironment: TeamEnvironment!
 }
 
 enum TeamVulnerabilityRanking {
@@ -5939,20 +8102,6 @@ enum TeamVulnerabilityRiskScoreTrend {
   Risk score is not changing.
   """
   FLAT
-}
-
-enum TeamVulnerabilityState {
-  OK
-  TOO_MANY_VULNERABLE_WORKLOADS
-  COVERAGE_TOO_LOW
-  VULNERABLE
-  MISSING_SBOM
-}
-
-type TeamVulnerabilityStatus {
-  state: TeamVulnerabilityState!
-  title: String!
-  description: String!
 }
 
 type TeamVulnerabilitySummary {
@@ -5997,6 +8146,11 @@ type TeamVulnerabilitySummary {
   coverage: Float!
 
   """
+  Timestamp of the last update of the vulnerability summary.
+  """
+  lastUpdated: Time!
+
+  """
   Ranking of the team based on vulnerability severity.
   """
   ranking: TeamVulnerabilityRanking!
@@ -6005,11 +8159,6 @@ type TeamVulnerabilitySummary {
   Trend of vulnerability status for the team.
   """
   riskScoreTrend: TeamVulnerabilityRiskScoreTrend!
-
-  """
-  Aggregated status of the vulnerabilities for the team.
-  """
-  status: [TeamVulnerabilityStatus!]!
 }
 
 """
@@ -6030,6 +8179,63 @@ input TeamWorkloadsFilter {
   Only return workloads from the given named environments.
   """
   environments: [String!]
+
+  """
+  Filter workloads with given workload states.
+  """
+  states: [WorkloadState!]
+
+  """
+  Filter workloads with given workload status error types.
+  """
+  statusErrorTypes: [WorkloadStatusErrorType!]
+}
+
+type TenantVulnerabilitySummary {
+  """
+  Risk score of the tenant.
+  """
+  riskScore: Int!
+
+  """
+  Number of vulnerabilities with severity CRITICAL.
+  """
+  critical: Int!
+
+  """
+  Number of vulnerabilities with severity HIGH.
+  """
+  high: Int!
+
+  """
+  Number of vulnerabilities with severity MEDIUM.
+  """
+  medium: Int!
+
+  """
+  Number of vulnerabilities with severity LOW.
+  """
+  low: Int!
+
+  """
+  Number of vulnerabilities with severity UNASSIGNED.
+  """
+  unassigned: Int!
+
+  """
+  Number of workloads with a software bill of materials (SBOM) attached.
+  """
+  sbomCount: Int!
+
+  """
+  SBOM Coverage of the tenant.
+  """
+  coverage: Float!
+
+  """
+  Timestamp of the last update of the vulnerability summary.
+  """
+  lastUpdated: Time!
 }
 
 """
@@ -6282,6 +8488,60 @@ type UpdateSecretValuePayload {
   secret: Secret
 }
 
+input UpdateServiceAccountInput {
+  """
+  The ID of the service account to update.
+  """
+  serviceAccountID: ID!
+
+  """
+  The new description of the service account.
+
+  If not specified, the description will remain unchanged.
+  """
+  description: String
+}
+
+type UpdateServiceAccountPayload {
+  """
+  The updated service account.
+  """
+  serviceAccount: ServiceAccount
+}
+
+input UpdateServiceAccountTokenInput {
+  """
+  The ID of the service account token to update.
+  """
+  serviceAccountTokenID: ID!
+
+  """
+  The new name of the service account token.
+
+  If not specified, the name will remain unchanged.
+  """
+  name: String
+
+  """
+  The new description of the service account token.
+
+  If not specified, the description will remain unchanged.
+  """
+  description: String
+}
+
+type UpdateServiceAccountTokenPayload {
+  """
+  The service account that the token belongs to.
+  """
+  serviceAccount: ServiceAccount
+
+  """
+  The updated service account token.
+  """
+  serviceAccountToken: ServiceAccountToken
+}
+
 input UpdateTeamEnvironmentInput {
   """
   Slug of the team to update.
@@ -6304,6 +8564,12 @@ type UpdateTeamEnvironmentPayload {
   The updated team environment.
   """
   environment: TeamEnvironment
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The updated team environment.
+  """
+  teamEnvironment: TeamEnvironment
 }
 
 input UpdateTeamInput {
@@ -6335,7 +8601,7 @@ type UpdateTeamPayload {
 }
 
 """
-The user type represents a user of the NAIS platform and the NAIS GraphQL API.
+The user type represents a user of the Nais platform and the Nais GraphQL API.
 """
 type User implements Node {
   """
@@ -6354,7 +8620,7 @@ type User implements Node {
   name: String!
 
   """
-  The external ID of the user. This value is managed by the NAIS API user synchronization.
+  The external ID of the user. This value is managed by the Nais API user synchronization.
   """
   externalID: String!
 
@@ -6415,6 +8681,76 @@ type UserConnection {
 }
 
 """
+User created log entry.
+"""
+type UserCreatedUserSyncLogEntry implements UserSyncLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the created user.
+  """
+  userID: ID!
+
+  """
+  The name of the created user.
+  """
+  userName: String!
+
+  """
+  The email address of the created user.
+  """
+  userEmail: String!
+}
+
+"""
+User deleted log entry.
+"""
+type UserDeletedUserSyncLogEntry implements UserSyncLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the deleted user.
+  """
+  userID: ID!
+
+  """
+  The name of the deleted user.
+  """
+  userName: String!
+
+  """
+  The email address of the deleted user.
+  """
+  userEmail: String!
+}
+
+"""
 User edge.
 """
 type UserEdge {
@@ -6460,6 +8796,76 @@ enum UserOrderField {
 }
 
 """
+Interface for user sync log entries.
+"""
+interface UserSyncLogEntry {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the affected user.
+  """
+  userID: ID!
+
+  """
+  The name of the affected user.
+  """
+  userName: String!
+
+  """
+  The email address of the affected user.
+  """
+  userEmail: String!
+}
+
+"""
+User sync log entry connection.
+"""
+type UserSyncLogEntryConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [UserSyncLogEntry!]!
+
+  """
+  List of edges.
+  """
+  edges: [UserSyncLogEntryEdge!]!
+}
+
+"""
+User sync log edge.
+"""
+type UserSyncLogEntryEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The log entry.
+  """
+  node: UserSyncLogEntry!
+}
+
+"""
 Ordering options when fetching the teams a user is connected to.
 """
 input UserTeamOrder {
@@ -6485,6 +8891,51 @@ enum UserTeamOrderField {
 }
 
 """
+User updated log entry.
+"""
+type UserUpdatedUserSyncLogEntry implements UserSyncLogEntry & Node {
+  """
+  ID of the entry.
+  """
+  id: ID!
+
+  """
+  Creation time of the entry.
+  """
+  createdAt: Time!
+
+  """
+  Message that summarizes the log entry.
+  """
+  message: String!
+
+  """
+  The ID of the updated user.
+  """
+  userID: ID!
+
+  """
+  The name of the updated user.
+  """
+  userName: String!
+
+  """
+  The email address of the updated user.
+  """
+  userEmail: String!
+
+  """
+  The old name of the user.
+  """
+  oldUserName: String!
+
+  """
+  The old email address of the user.
+  """
+  oldUserEmail: String!
+}
+
+"""
 Resource type.
 """
 enum UtilizationResourceType {
@@ -6505,6 +8956,223 @@ type UtilizationSample {
   Value of the used resource at the given timestamp.
   """
   value: Float!
+
+  """
+  The instance for the utilization data.
+  """
+  instance: String!
+}
+
+type ValkeyInstance implements Persistence & Node {
+  id: ID!
+  name: String!
+  terminationProtection: Boolean!
+  team: Team!
+  environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+  teamEnvironment: TeamEnvironment!
+  access(
+    first: Int
+    after: Cursor
+    last: Int
+    before: Cursor
+    orderBy: ValkeyInstanceAccessOrder
+  ): ValkeyInstanceAccessConnection!
+  workload: Workload
+  status: ValkeyInstanceStatus!
+  cost: ValkeyInstanceCost!
+
+  """
+  Fetch maintenances updates for the Valkey instance.
+  """
+  maintenance: ValkeyMaintenance!
+}
+
+type ValkeyInstanceAccess {
+  workload: Workload!
+  access: String!
+}
+
+type ValkeyInstanceAccessConnection {
+  pageInfo: PageInfo!
+  nodes: [ValkeyInstanceAccess!]!
+  edges: [ValkeyInstanceAccessEdge!]!
+}
+
+type ValkeyInstanceAccessEdge {
+  cursor: Cursor!
+  node: ValkeyInstanceAccess!
+}
+
+input ValkeyInstanceAccessOrder {
+  field: ValkeyInstanceAccessOrderField!
+  direction: OrderDirection!
+}
+
+enum ValkeyInstanceAccessOrderField {
+  ACCESS
+  WORKLOAD
+}
+
+type ValkeyInstanceConnection {
+  pageInfo: PageInfo!
+  nodes: [ValkeyInstance!]!
+  edges: [ValkeyInstanceEdge!]!
+}
+
+type ValkeyInstanceCost {
+  sum: Float!
+}
+
+type ValkeyInstanceEdge {
+  cursor: Cursor!
+  node: ValkeyInstance!
+}
+
+input ValkeyInstanceOrder {
+  field: ValkeyInstanceOrderField!
+  direction: OrderDirection!
+}
+
+enum ValkeyInstanceOrderField {
+  NAME
+  ENVIRONMENT
+}
+
+type ValkeyInstanceStatus {
+  state: String!
+}
+
+type ValkeyMaintenance {
+  updates(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): ValkeyMaintenanceUpdateConnection!
+}
+
+type ValkeyMaintenanceUpdate implements ServiceMaintenanceUpdate {
+  """
+  Title of the maintenance.
+  """
+  title: String!
+
+  """
+  Description of the maintenance.
+  """
+  description: String!
+
+  """
+  Deadline for installing the maintenance. If set, maintenance is mandatory and will be forcibly applied.
+  """
+  deadline: Time
+
+  """
+  The time when the update will be automatically applied. If set, maintenance is mandatory and will be forcibly applied.
+  """
+  startAt: Time
+}
+
+type ValkeyMaintenanceUpdateConnection {
+  """
+  Pagination information.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of nodes.
+  """
+  nodes: [ValkeyMaintenanceUpdate!]!
+
+  """
+  List of edges.
+  """
+  edges: [ValkeyMaintenanceUpdateEdge!]!
+}
+
+type ValkeyMaintenanceUpdateEdge {
+  """
+  Cursor for this edge that can be used for pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The ValkeyMaintenanceUpdate.
+  """
+  node: ValkeyMaintenanceUpdate!
+}
+
+"""
+Ordering options when fetching vulnerability summaries for workloads.
+"""
+input VulnerabilitySummaryOrder {
+  """
+  The field to order items by.
+  """
+  field: VulnerabilitySummaryOrderByField!
+
+  """
+  The direction to order items by.
+  """
+  direction: OrderDirection!
+}
+
+enum VulnerabilitySummaryOrderByField {
+  """
+  Order by name.
+  """
+  NAME
+
+  """
+  Order by the name of the environment the workload is deployed in.
+  """
+  ENVIRONMENT
+
+  """
+  Order by risk score"
+  """
+  VULNERABILITY_RISK_SCORE
+
+  """
+  Order by vulnerability severity critical"
+  """
+  VULNERABILITY_SEVERITY_CRITICAL
+
+  """
+  Order by vulnerability severity high"
+  """
+  VULNERABILITY_SEVERITY_HIGH
+
+  """
+  Order by vulnerability severity medium"
+  """
+  VULNERABILITY_SEVERITY_MEDIUM
+
+  """
+  Order by vulnerability severity low"
+  """
+  VULNERABILITY_SEVERITY_LOW
+
+  """
+  Order by vulnerability severity unassigned"
+  """
+  VULNERABILITY_SEVERITY_UNASSIGNED
 }
 
 type VulnerabilityUpdatedActivityLogEntry implements ActivityLogEntry & Node {
@@ -6572,6 +9240,12 @@ interface Workload {
   The environment the workload is deployed in.
   """
   environment: TeamEnvironment!
+    @deprecated(reason: "Use the `teamEnvironment` field instead.")
+
+  """
+  The team environment for the workload.
+  """
+  teamEnvironment: TeamEnvironment!
 
   """
   The container image of the workload.
@@ -6587,6 +9261,36 @@ interface Workload {
   The workload manifest.
   """
   manifest: WorkloadManifest!
+
+  """
+  If set, when the workload was marked for deletion.
+  """
+  deletionStartedAt: Time
+
+  """
+  Activity log associated with the workload.
+  """
+  activityLog(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): ActivityLogEntryConnection!
 
   """
   BigQuery datasets referenced by the workload. This does not currently support pagination, but will return all available datasets.
@@ -6614,11 +9318,29 @@ interface Workload {
   cost: WorkloadCost!
 
   """
-  Deployment information for the job.
-  DO NOT USE
-  This is a work in progress, and will be changed in the future.
+  List of deployments for the workload.
   """
-  deploymentInfo: DeploymentInfo!
+  deployments(
+    """
+    Get the first n items in the connection. This can be used in combination with the after parameter.
+    """
+    first: Int
+
+    """
+    Get items after this cursor.
+    """
+    after: Cursor
+
+    """
+    Get the last n items in the connection. This can be used in combination with the before parameter.
+    """
+    last: Int
+
+    """
+    Get items before this cursor.
+    """
+    before: Cursor
+  ): DeploymentConnection!
 
   """
   Kafka topics the workload has access to. This does not currently support pagination, but will return all available Kafka topics.
@@ -6631,6 +9353,11 @@ interface Workload {
   ): KafkaTopicAclConnection!
 
   """
+  List of log destinations for the workload.
+  """
+  logDestinations: [LogDestination!]!
+
+  """
   Network policies for the workload.
   """
   networkPolicy: NetworkPolicy!
@@ -6639,16 +9366,6 @@ interface Workload {
   OpenSearch instance referenced by the workload.
   """
   openSearch: OpenSearch
-
-  """
-  Redis instances referenced by the workload. This does not currently support pagination, but will return all available Redis instances.
-  """
-  redisInstances(
-    """
-    Ordering options for items returned from the connection.
-    """
-    orderBy: RedisInstanceOrder
-  ): RedisInstanceConnection!
 
   """
   Secrets used by the workload.
@@ -6689,6 +9406,26 @@ interface Workload {
   Status of the workload
   """
   status: WorkloadStatus!
+
+  """
+  Valkey instances referenced by the workload. This does not currently support pagination, but will return all available Valkey instances.
+  """
+  valkeyInstances(
+    """
+    Ordering options for items returned from the connection.
+    """
+    orderBy: ValkeyInstanceOrder
+  ): ValkeyInstanceConnection!
+
+  """
+  Get the vulnerability summary history for workload.
+  """
+  imageVulnerabilityHistory(
+    """
+    Get vulnerability summary from given date until today.
+    """
+    from: Date!
+  ): ImageVulnerabilityHistory!
 }
 
 """
@@ -6916,6 +9653,11 @@ enum WorkloadOrderField {
   Order apps by vulnerability severity unassigned
   """
   VULNERABILITY_SEVERITY_UNASSIGNED
+
+  """
+  Order by whether the workload has a software bill of materials (SBOM)
+  """
+  HAS_SBOM
 }
 
 """
@@ -6925,12 +9667,12 @@ type WorkloadResourceQuantity {
   """
   The number of CPU cores.
   """
-  cpu: Float!
+  cpu: Float
 
   """
   The amount of memory in bytes.
   """
-  memory: Int!
+  memory: Int
 }
 
 """
@@ -7061,6 +9803,56 @@ enum WorkloadStatusErrorLevel {
 }
 
 """
+This enum represents types of errors implementing WorkloadStatusError for use in workload filtering.
+"""
+enum WorkloadStatusErrorType {
+  """
+  Error describing usage of a deprecated registry
+  """
+  DEPRECATED_REGISTRY
+
+  """
+  Error describing usage of a deprecated ingress
+  """
+  DEPRECATED_INGRESS
+
+  """
+  Error describing usage of an instance of Cloud SQL with a unsupported version
+  """
+  UNSUPPORTED_CLOUD_SQL_VERSION
+
+  """
+  Error describing that the workload is failing to synchronize
+  """
+  SYNCHRONIZATION_FAILING
+
+  """
+  Error describing that the workload is failing to run
+  """
+  FAILED_RUN
+
+  """
+  Error describing that the workload is missing SBOM
+  """
+  MISSING_SBOM
+
+  """
+  Error describing that the workload is vulnerable
+  """
+  VULNERABLE
+
+  """
+  Workload does not have any active instances, but is requested to have some
+  """
+  NO_RUNNING_INSTANCES
+
+  """
+  Last deployed YAML is invalid
+  """
+  INVALID_NAIS_YAML
+}
+
+"""
 Error describing that the workload is failing to run
 """
 type WorkloadStatusFailedRun implements WorkloadStatusError {
@@ -7078,21 +9870,6 @@ type WorkloadStatusFailedRun implements WorkloadStatusError {
   Name of the run
   """
   name: String!
-}
-
-"""
-An inbound network policies are not met
-"""
-type WorkloadStatusInboundNetwork implements WorkloadStatusError {
-  """
-  Error level
-  """
-  level: WorkloadStatusErrorLevel!
-
-  """
-  Network policy
-  """
-  policy: NetworkPolicyRule!
 }
 
 """
@@ -7121,21 +9898,6 @@ type WorkloadStatusMissingSBOM implements WorkloadStatusError {
 }
 
 """
-Error describing that a workload has new instances that are failing
-"""
-type WorkloadStatusNewInstancesFailing implements WorkloadStatusError {
-  """
-  Error level
-  """
-  level: WorkloadStatusErrorLevel!
-
-  """
-  Names of the failing instances
-  """
-  failingInstances: [String!]!
-}
-
-"""
 A workload does not have any active instances, but is requested to have some
 """
 type WorkloadStatusNoRunningInstances implements WorkloadStatusError {
@@ -7143,21 +9905,6 @@ type WorkloadStatusNoRunningInstances implements WorkloadStatusError {
   Error level
   """
   level: WorkloadStatusErrorLevel!
-}
-
-"""
-An outbound network policies are not met
-"""
-type WorkloadStatusOutboundNetwork implements WorkloadStatusError {
-  """
-  Error level
-  """
-  level: WorkloadStatusErrorLevel!
-
-  """
-  Network policy
-  """
-  policy: NetworkPolicyRule!
 }
 
 """
@@ -7173,6 +9920,21 @@ type WorkloadStatusSynchronizationFailing implements WorkloadStatusError {
   Error message
   """
   detail: String!
+}
+
+"""
+Error describing usage of an instance of Cloud SQL with a unsupported version
+"""
+type WorkloadStatusUnsupportedCloudSQLVersion implements WorkloadStatusError {
+  """
+  Error level. Warning if the version is deprecated, error if the version is unsupported.
+  """
+  level: WorkloadStatusErrorLevel!
+
+  """
+  Postgres version
+  """
+  version: String!
 }
 
 """
@@ -7202,9 +9964,29 @@ type WorkloadUtilization {
   requested(resourceType: UtilizationResourceType!): Float!
 
   """
+  Gets the requested amount of resources between start and end with step size for given resource type.
+  """
+  requestedSeries(input: WorkloadUtilizationSeriesInput!): [UtilizationSample!]!
+
+  """
+  Gets the limit of the resources for the requested resource type.
+  """
+  limit(resourceType: UtilizationResourceType!): Float
+
+  """
+  Gets the limit of the resources between start and end with step size for given resource type.
+  """
+  limitSeries(input: WorkloadUtilizationSeriesInput!): [UtilizationSample!]!
+
+  """
   Usage between start and end with step size for given resource type.
   """
   series(input: WorkloadUtilizationSeriesInput!): [UtilizationSample!]!
+
+  """
+  Gets the recommended amount of resources for the workload.
+  """
+  recommendations: WorkloadUtilizationRecommendations!
 }
 
 type WorkloadUtilizationData {
@@ -7224,6 +10006,12 @@ type WorkloadUtilizationData {
   used: Float!
 }
 
+type WorkloadUtilizationRecommendations {
+  cpuRequestCores: Float!
+  memoryRequestBytes: Int!
+  memoryLimitBytes: Int!
+}
+
 input WorkloadUtilizationSeriesInput {
   """
   Fetch resource usage from this timestamp.
@@ -7239,4 +10027,55 @@ input WorkloadUtilizationSeriesInput {
   Resource type.
   """
   resourceType: UtilizationResourceType!
+}
+
+type WorkloadVulnerabilitySummary implements Node {
+  """
+  The globally unique ID of the workload vulnerability summary node.
+  """
+  id: ID!
+
+  """
+  The workload
+  """
+  workload: Workload!
+
+  """
+  True if the workload has a software bill of materials (SBOM) attached.
+  """
+  hasSBOM: Boolean!
+
+  """
+  The vulnerability summary for the workload.
+  """
+  summary: ImageVulnerabilitySummary!
+}
+
+type WorkloadVulnerabilitySummaryConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+
+  """
+  List of edges.
+  """
+  edges: [WorkloadVulnerabilitySummaryEdge!]!
+
+  """
+  List of nodes.
+  """
+  nodes: [WorkloadVulnerabilitySummary!]!
+}
+
+type WorkloadVulnerabilitySummaryEdge {
+  """
+  A cursor for use in pagination.
+  """
+  cursor: Cursor!
+
+  """
+  The workload vulnerability summary.
+  """
+  node: WorkloadVulnerabilitySummary!
 }

@@ -1,0 +1,23 @@
+query ($environment: String, $workloadCursor: Cursor) {
+  environment(name: $environment) {
+      workloads(
+        first: 100,
+        after: $workloadCursor,
+        orderBy: { field: DEPLOYMENT_TIME, direction: DESC }
+      ) {
+        nodes {
+          __typename
+          deployments(first: 1) {
+            nodes {
+              repository
+              createdAt
+            }
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+}
