@@ -8,13 +8,6 @@
                 <logger>logger_name</logger>
                 <thread>thread_name</thread>
             </fieldNames>
-            <provider class="net.logstash.logback.composite.loggingevent.LoggingEventPatternJsonProvider">
-                <pattern>
-                    {
-                    "class": "%logger{36}"
-                    }
-                </pattern>
-            </provider>
         </encoder>
     </appender>
 
