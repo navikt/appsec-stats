@@ -125,9 +125,9 @@ class NaisApi(httpClient: HttpClient) {
 
         val updatedRepos = repos.plus(newRepos)
 
-        // Check if any workload has more vulnerabilities to fetch
-        val workloadWithMoreVulns = data.teams.nodes.flatMap { team ->
-            team.workloads.nodes.filter { workload ->
+        val workloadWithMoreVulns = data.teams.nodes.asSequence()
+            .flatMap { team -> team.workloads.nodes.asSequence() }
+            .firstOrNull { workload ->
                 when (workload) {
                     is no.nav.security.repovulnerabilityquery.Application ->
                         workload.image.vulnerabilities.pageInfo.hasNextPage
@@ -136,7 +136,6 @@ class NaisApi(httpClient: HttpClient) {
                     else -> false
                 }
             }
-        }.firstOrNull()
 
         if (workloadWithMoreVulns != null) {
             val vulnEndCursor = when (workloadWithMoreVulns) {
@@ -146,7 +145,12 @@ class NaisApi(httpClient: HttpClient) {
                     workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
                 else -> null
             }
-            logger.info("Found workload with more vulnerabilities, fetching next page with cursor $vulnEndCursor")
+            val workloadName = when (workloadWithMoreVulns) {
+                is no.nav.security.repovulnerabilityquery.Application -> workloadWithMoreVulns.name
+                is no.nav.security.repovulnerabilityquery.Job -> workloadWithMoreVulns.name
+                else -> "unknown"
+            }
+            logger.info("Workload '$workloadName' has more vulnerabilities (cursor: $vulnEndCursor). Fetching next page.")
             return fetchRepoVulnerabilities(
                 teamCursor = teamCursor,
                 workloadCursor = workloadCursor,
@@ -155,18 +159,32 @@ class NaisApi(httpClient: HttpClient) {
             )
         }
 
-        // Check if there are more workloads to process for the current team
-        val currentTeam = data.teams.nodes.firstOrNull()
-        if (currentTeam != null && currentTeam.workloads.pageInfo.hasNextPage) {
+        val teamWithMoreWorkloads = data.teams.nodes.firstOrNull { team ->
+            team.workloads.pageInfo.hasNextPage
+        }
+
+        if (teamWithMoreWorkloads != null) {
+            logger.info("Team has more workloads (cursor: ${teamWithMoreWorkloads.workloads.pageInfo.endCursor}). Fetching next page.")
             return fetchRepoVulnerabilities(
                 teamCursor = teamCursor,
-                workloadCursor = currentTeam.workloads.pageInfo.endCursor,
+                workloadCursor = teamWithMoreWorkloads.workloads.pageInfo.endCursor,
                 vulnCursor = null,
                 repos = updatedRepos
             )
         }
 
-        return updatedRepos
+        return if (data.teams.pageInfo.hasNextPage) {
+            logger.info("More teams available (cursor: ${data.teams.pageInfo.endCursor}). Fetching next page.")
+            fetchRepoVulnerabilities(
+                teamCursor = data.teams.pageInfo.endCursor,
+                workloadCursor = null,
+                vulnCursor = null,
+                repos = updatedRepos
+            )
+        } else {
+            logger.info("Pagination complete. Total repositories with vulnerabilities: ${updatedRepos.size}")
+            updatedRepos
+        }
     }
 
     private suspend fun processWorkloadVulnerabilities(

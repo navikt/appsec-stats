@@ -78,7 +78,7 @@ class BigQueryVulnerabilities(projectID: String) {
 }
 
 data class BQRepoVulnerability(
-    val source: Enum<BQVulnerabilitySource>,
+    val source: BQVulnerabilitySource,
     val githubRepository: String,
     val vulnerabilities: List<BQRepoVulnerabilityDetail>)
 
