@@ -54,7 +54,7 @@ fun main(args: Array<String>): Unit = runBlocking {
 
         val bqRepoVulnerabilities = naisRepositories.map {
             BQRepoVulnerability(
-                source = BQVulnerabilitySource.GITHUB,
+                source = BQVulnerabilitySource.NAIS,
                 githubRepository = it.name,
                 vulnerabilities = it.vulnerabilities.map { vuln ->
                     BQRepoVulnerabilityDetail(
@@ -69,23 +69,24 @@ fun main(args: Array<String>): Unit = runBlocking {
         logger.info("Fetching vulnerability data from GitHub...")
         val githubVulns = github.fetchRepositoryVulnerabilities()
         logger.info("Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${githubVulns.sumOf { it.vulnerabilities.size }} vulnerabilities")
-        githubVulns.map { vuln ->
-            bqRepoVulnerabilities.plus(
-                BQRepoVulnerability(
-                    source = BQVulnerabilitySource.GITHUB,
-                    githubRepository = vuln.repository,
-                    vulnerabilities = vuln.vulnerabilities.map { detail ->
-                        BQRepoVulnerabilityDetail(
-                            identifiers = detail.identifier.map { it.value },
-                            severity = detail.severity,
-                            suppressed = false // We only fetch OPEN vulns from GitHub
-                        )
-                    }
-                )
+
+        val githubBqVulns = githubVulns.map { vuln ->
+            BQRepoVulnerability(
+                source = BQVulnerabilitySource.GITHUB,
+                githubRepository = vuln.repository,
+                vulnerabilities = vuln.vulnerabilities.map { detail ->
+                    BQRepoVulnerabilityDetail(
+                        identifiers = detail.identifier.map { it.value },
+                        severity = detail.severity,
+                        suppressed = false // We only fetch OPEN vulns from GitHub
+                    )
+                }
             )
         }
 
-        bqVulnerabilities.insert(bqRepoVulnerabilities).fold(
+        val allVulnerabilities = bqRepoVulnerabilities.plus(githubBqVulns)
+
+        bqVulnerabilities.insert(allVulnerabilities).fold(
             { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
             { ex -> throw ex }
         )

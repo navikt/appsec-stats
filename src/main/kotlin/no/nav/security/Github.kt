@@ -61,7 +61,7 @@ class GitHub(
         return oppdatertRepositoryliste
     }
 
-    suspend fun fetchRepositoryVulnerabilities(
+    tailrec suspend fun fetchRepositoryVulnerabilities(
         repoEndCursor: String? = null,
         repoStartCursor: String? = null,
         vulnEndCursor: String? = null,
@@ -99,17 +99,6 @@ class GitHub(
                     }
                 } ?: emptyList()
 
-                // Check if we need to fetch more vulnerabilities for this repository
-                if (it.vulnerabilityAlerts?.pageInfo?.hasNextPage == true) {
-                    logger.info("Repository ${it.name} has more vulnerabilities, fetching next page")
-                    return fetchRepositoryVulnerabilities(
-                        repoEndCursor = repoEndCursor,
-                        repoStartCursor = repoStartCursor,
-                        vulnEndCursor = it.vulnerabilityAlerts.pageInfo.endCursor,
-                        vulnerabilitiesList = vulnerabilitiesList
-                    )
-                }
-
                 if (vulnerabilities.isNotEmpty()) {
                     GithubRepoVulnerabilities(
                         repository = it.name,
@@ -122,6 +111,21 @@ class GitHub(
         } ?: emptyList()
 
         val updatedVulnerabilitiesList = vulnerabilitiesList.plus(repositories)
+
+        // Check if any repository has more vulnerabilities to fetch
+        val repoWithMoreVulns = response.data?.organization?.repositories?.nodes?.find { repo ->
+            repo?.vulnerabilityAlerts?.pageInfo?.hasNextPage == true
+        }
+
+        if (repoWithMoreVulns != null) {
+            logger.info("Repository ${repoWithMoreVulns.name} has more vulnerabilities, fetching next page")
+            return fetchRepositoryVulnerabilities(
+                repoEndCursor = repoEndCursor,
+                repoStartCursor = repoStartCursor,
+                vulnEndCursor = repoWithMoreVulns.vulnerabilityAlerts?.pageInfo?.endCursor,
+                vulnerabilitiesList = updatedVulnerabilitiesList
+            )
+        }
 
         // Check if there are more repositories to fetch
         val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
