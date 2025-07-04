@@ -108,14 +108,15 @@ class NaisApi(httpClient: HttpClient) {
             return repos
         }
 
+        // Process vulnerabilities from the current page
         val newRepos = data.teams.nodes.flatMap { team ->
             team.workloads.nodes.mapNotNull { workload ->
                 when (workload) {
                     is no.nav.security.repovulnerabilityquery.Application -> {
-                        processWorkloadVulnerabilities(workload.name, workload.image, repos, teamCursor, workloadCursor)
+                        processWorkloadVulnerabilities(workload.name, workload.image, repos)
                     }
                     is no.nav.security.repovulnerabilityquery.Job -> {
-                        processWorkloadVulnerabilities(workload.name, workload.image, repos, teamCursor, workloadCursor)
+                        processWorkloadVulnerabilities(workload.name, workload.image, repos)
                     }
                     else -> null // Skip unknown workload types
                 }
@@ -124,6 +125,37 @@ class NaisApi(httpClient: HttpClient) {
 
         val updatedRepos = repos.plus(newRepos)
 
+        // Check if any workload has more vulnerabilities to fetch
+        val workloadWithMoreVulns = data.teams.nodes.flatMap { team ->
+            team.workloads.nodes.filter { workload ->
+                when (workload) {
+                    is no.nav.security.repovulnerabilityquery.Application ->
+                        workload.image.vulnerabilities.pageInfo.hasNextPage
+                    is no.nav.security.repovulnerabilityquery.Job ->
+                        workload.image.vulnerabilities.pageInfo.hasNextPage
+                    else -> false
+                }
+            }
+        }.firstOrNull()
+
+        if (workloadWithMoreVulns != null) {
+            val vulnEndCursor = when (workloadWithMoreVulns) {
+                is no.nav.security.repovulnerabilityquery.Application ->
+                    workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+                is no.nav.security.repovulnerabilityquery.Job ->
+                    workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+                else -> null
+            }
+            logger.info("Found workload with more vulnerabilities, fetching next page with cursor $vulnEndCursor")
+            return fetchRepoVulnerabilities(
+                teamCursor = teamCursor,
+                workloadCursor = workloadCursor,
+                vulnCursor = vulnEndCursor,
+                repos = updatedRepos
+            )
+        }
+
+        // Check if there are more workloads to process for the current team
         val currentTeam = data.teams.nodes.firstOrNull()
         if (currentTeam != null && currentTeam.workloads.pageInfo.hasNextPage) {
             return fetchRepoVulnerabilities(
@@ -134,24 +166,13 @@ class NaisApi(httpClient: HttpClient) {
             )
         }
 
-        return if (data.teams.pageInfo.hasNextPage) {
-            fetchRepoVulnerabilities(
-                teamCursor = data.teams.pageInfo.endCursor,
-                workloadCursor = null,
-                vulnCursor = null,
-                repos = updatedRepos
-            )
-        } else {
-            updatedRepos
-        }
+        return updatedRepos
     }
 
     private suspend fun processWorkloadVulnerabilities(
         workloadName: String,
         image: no.nav.security.repovulnerabilityquery.ContainerImage,
-        repos: Set<NaisRepository>,
-        teamCursor: String?,
-        workloadCursor: String?
+        repos: Set<NaisRepository>
     ): NaisRepository? {
         val existingVulnerabilities = repos.find { it.name == workloadName.substringAfter("/") }?.vulnerabilities ?: emptySet()
         val vulnerabilities = image.vulnerabilities.nodes.map { vuln ->
@@ -162,9 +183,6 @@ class NaisApi(httpClient: HttpClient) {
             )
         }.toSet()
 
-        if (image.vulnerabilities.pageInfo.hasNextPage) {
-            return null // This will be handled by the recursive call
-        }
 
         return if (vulnerabilities.isNotEmpty()) {
             NaisRepository(
