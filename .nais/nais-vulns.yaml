@@ -3,15 +3,14 @@ kind: Naisjob
 metadata:
   labels:
     team: appsec
-  name: appsec-stats
+  name: appsec-vulnerability-stats
   namespace: appsec
 spec:
   image: "{{ image }}"
-  schedule: "5 22 * * *"
+  command:
+    - "--fetch-vulnerabilities"
+  schedule: "0 4 * * *"
   ttlSecondsAfterFinished: 300
-  azure:
-    application:
-      enabled: true
   resources:
     limits:
       cpu: "500m"
@@ -27,10 +26,6 @@ spec:
         permission: READWRITE
   accessPolicy:
     outbound:
-      rules:
-        - application: team-catalog-backend
-          cluster: prod-gcp
-          namespace: org
       external:
         - host: api.github.com
         - host: console.nav.cloud.nais.io

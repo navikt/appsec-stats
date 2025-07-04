@@ -56,19 +56,23 @@ dependencies {
 
 val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
     packageName.set("no.nav.security")
-    schemaFile.set(file("${project.projectDir}/src/main/resources/github/schema.graphql"))
-    queryFiles.from("${project.projectDir}/src/main/resources/github/FetchGithubRepositoriesQuery.graphql")
+    schemaFile.set(file("${project.projectDir}/src/main/resources/github/schema.graphqls"))
+    queryFiles.from(
+        "${project.projectDir}/src/main/resources/github/FetchGithubRepositoriesQuery.graphql",
+        "${project.projectDir}/src/main/resources/github/FetchGithubVulnerabilitiesQuery.graphql",
+    )
     parserOptions.assign(GraphQLParserOptions(maxTokens = 100000, maxCharacters = 2048576))
     serializer.set(GraphQLSerializer.KOTLINX)
 }
 
 val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::class) {
     packageName.set("no.nav.security")
-    schemaFile.set(file("${project.projectDir}/src/main/resources/nais/schema.graphql"))
+    schemaFile.set(file("${project.projectDir}/src/main/resources/nais/schema.graphqls"))
     queryFiles.from(
         file("${project.projectDir}/src/main/resources/nais/TeamStatsQuery.graphql"),
         file("${project.projectDir}/src/main/resources/nais/EnvironmentsQuery.graphql"),
-        file("${project.projectDir}/src/main/resources/nais/DeploymentsQuery.graphql")
+        file("${project.projectDir}/src/main/resources/nais/DeploymentsQuery.graphql"),
+        file("${project.projectDir}/src/main/resources/nais/RepoVulnerabilityQuery.graphql")
     )
     serializer.set(GraphQLSerializer.KOTLINX)
 }

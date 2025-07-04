@@ -1,19 +1,13 @@
 query ($teamsCursor: Cursor, $repoCursor: Cursor) {
-  teams(
-    first: 100,
-    after: $teamsCursor
-  ) {
+  teams(first: 10, after: $teamsCursor) {
     nodes {
       slug
       vulnerabilitySummary {
         coverage
       }
-      inventoryCounts {
-        applications {
-          total
-        }
-        jobs {
-          total
+      workloads(first: 1) {
+        pageInfo {
+          totalCount
         }
       }
       repositories(
@@ -25,7 +19,6 @@ query ($teamsCursor: Cursor, $repoCursor: Cursor) {
         }
         pageInfo {
           hasNextPage
-          startCursor
           endCursor
         }
       }
