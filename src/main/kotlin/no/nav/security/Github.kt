@@ -60,6 +60,85 @@ class GitHub(
         }
         return oppdatertRepositoryliste
     }
+
+    suspend fun fetchRepositoryVulnerabilities(
+        repoEndCursor: String? = null,
+        repoStartCursor: String? = null,
+        vulnEndCursor: String? = null,
+        vulnerabilitiesList: List<GithubRepoVulnerabilities> = emptyList()
+    ): List<GithubRepoVulnerabilities> {
+        val ghQuery = FetchGithubVulnerabilitiesQuery(
+            variables = FetchGithubVulnerabilitiesQuery.Variables(
+                orgName = "navikt",
+                repoEndCursor = repoEndCursor,
+                repoStartCursor = repoStartCursor,
+                vulnEndCursor = vulnEndCursor
+            )
+        )
+
+        val response: GraphQLClientResponse<FetchGithubVulnerabilitiesQuery.Result> = graphQlClient.execute(ghQuery)
+
+        response.errors?.let {
+            logger.error("Error fetching vulnerabilities from GitHub: $it")
+            throw RuntimeException("Error fetching vulnerabilities from GitHub: $it")
+        }
+
+        val repositories = response.data?.organization?.repositories?.nodes?.mapNotNull { repo ->
+            repo?.let {
+                val vulnerabilities = it.vulnerabilityAlerts?.nodes?.mapNotNull { alert ->
+                    alert?.securityVulnerability?.let { secVuln ->
+                        GithubRepoVulnerabilities.GithubVulnerability(
+                            severity = secVuln.severity.name,
+                            identifier = secVuln.advisory.identifiers.map { identifier ->
+                                GithubRepoVulnerabilities.GithubVulnerability.GithubVulnerabilityIdentifier(
+                                    value = identifier.value,
+                                    type = identifier.type
+                                )
+                            }
+                        )
+                    }
+                } ?: emptyList()
+
+                // Check if we need to fetch more vulnerabilities for this repository
+                if (it.vulnerabilityAlerts?.pageInfo?.hasNextPage == true) {
+                    logger.info("Repository ${it.name} has more vulnerabilities, fetching next page")
+                    return fetchRepositoryVulnerabilities(
+                        repoEndCursor = repoEndCursor,
+                        repoStartCursor = repoStartCursor,
+                        vulnEndCursor = it.vulnerabilityAlerts.pageInfo.endCursor,
+                        vulnerabilitiesList = vulnerabilitiesList
+                    )
+                }
+
+                if (vulnerabilities.isNotEmpty()) {
+                    GithubRepoVulnerabilities(
+                        repository = it.name,
+                        vulnerabilities = vulnerabilities
+                    )
+                } else {
+                    null // Skip repositories without vulnerabilities
+                }
+            }
+        } ?: emptyList()
+
+        val updatedVulnerabilitiesList = vulnerabilitiesList.plus(repositories)
+
+        // Check if there are more repositories to fetch
+        val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
+        val nextRepositoryPage = repositoryPageInfo?.endCursor.takeIf { repositoryPageInfo?.hasNextPage ?: false }
+
+        return if (nextRepositoryPage != null) {
+            logger.info("Fetching next page of repositories with cursor: $nextRepositoryPage")
+            fetchRepositoryVulnerabilities(
+                repoEndCursor = nextRepositoryPage,
+                repoStartCursor = null,
+                vulnEndCursor = null,
+                vulnerabilitiesList = updatedVulnerabilitiesList
+            )
+        } else {
+            updatedVulnerabilitiesList
+        }
+    }
 }
 
 suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> = coroutineScope {
@@ -99,6 +178,21 @@ data class Team(
     val name: String,
     val permission: String
 )
+
+data class GithubRepoVulnerabilities(
+    val repository: String,
+    val vulnerabilities: List<GithubVulnerability>
+) {
+    data class GithubVulnerability(
+        val severity: String,
+        val identifier: List<GithubVulnerabilityIdentifier>
+    ) {
+        data class GithubVulnerabilityIdentifier(
+            val value: String,
+            val type: String
+        )
+    }
+}
 
 data class GithubRepository(
     val name: String,

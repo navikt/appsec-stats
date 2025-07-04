@@ -19,3 +19,15 @@ spec:
           labels:
             namespace: appsec
             severity: warning
+        - alert: Naisjob failed
+          expr: kube_job_failed{job_name=~"^appsec-vulnerability-stats.*", namespace="appsec"} > 0
+          for: 1m
+          annotations:
+            description: Naisjob appsec-vulnerability-stats failed
+            consequence: No update to bigquery stats
+            action: "check the logs"
+            summary: |-
+              Notifies if the latest run failed
+          labels:
+            namespace: appsec
+            severity: warning

@@ -12,8 +12,12 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
+import no.nav.security.bigquery.BQRepoVulnerability
+import no.nav.security.bigquery.BQRepoVulnerabilityDetail
+import no.nav.security.bigquery.BQVulnerabilitySource
 import no.nav.security.bigquery.BigQueryRepos
 import no.nav.security.bigquery.BigQueryTeams
+import no.nav.security.bigquery.BigQueryVulnerabilities
 import no.nav.security.bigquery.newestDeployment
 import no.nav.security.bigquery.toBigQueryFormat
 import org.slf4j.Logger
@@ -21,7 +25,9 @@ import org.slf4j.LoggerFactory
 
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
-fun main(): Unit = runBlocking {
+fun main(args: Array<String>): Unit = runBlocking {
+    val fetchVulnerabilities = args.contains("--fetch-vulnerabilities")
+
     val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
     val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
 
@@ -37,6 +43,60 @@ fun main(): Unit = runBlocking {
 
     val github = GitHub(httpClient = githubHttpClient)
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
+
+    // Fetch vulnerabilities only if the argument is provided
+    if (fetchVulnerabilities) {
+        val bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
+
+        logger.info("Fetching vulnerability data from Nais API...")
+        val naisRepositories = naisApi.repoVulnerabilities()
+        logger.info("Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${naisRepositories.sumOf { it.vulnerabilities.size }} vulnerabilities from Nais API")
+
+        val bqRepoVulnerabilities = naisRepositories.map {
+            BQRepoVulnerability(
+                source = BQVulnerabilitySource.GITHUB,
+                githubRepository = it.name,
+                vulnerabilities = it.vulnerabilities.map { vuln ->
+                    BQRepoVulnerabilityDetail(
+                        identifiers = listOf(vuln.identifier),
+                        severity = vuln.severity,
+                        suppressed = vuln.suppressed
+                    )
+                }
+            )
+        }
+
+        logger.info("Fetching vulnerability data from GitHub...")
+        val githubVulns = github.fetchRepositoryVulnerabilities()
+        logger.info("Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${githubVulns.sumOf { it.vulnerabilities.size }} vulnerabilities")
+        githubVulns.map { vuln ->
+            bqRepoVulnerabilities.plus(
+                BQRepoVulnerability(
+                    source = BQVulnerabilitySource.GITHUB,
+                    githubRepository = vuln.repository,
+                    vulnerabilities = vuln.vulnerabilities.map { detail ->
+                        BQRepoVulnerabilityDetail(
+                            identifiers = detail.identifier.map { it.value },
+                            severity = detail.severity,
+                            suppressed = false // We only fetch OPEN vulns from GitHub
+                        )
+                    }
+                )
+            )
+        }
+
+        bqVulnerabilities.insert(bqRepoVulnerabilities).fold(
+            { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
+            { ex -> throw ex }
+        )
+
+        // If we fetched vulnerabilities, we do not want to run the rest of the application.
+        // So we exit here.
+        logger.info("Vulnerability data fetched and inserted into BigQuery. Exiting application.")
+        return@runBlocking
+    }
+
+
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
     logger.info("Looking for GitHub repos...")
