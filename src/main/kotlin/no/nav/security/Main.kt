@@ -12,13 +12,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
-import no.nav.security.bigquery.BQRepoVulnerability
-import no.nav.security.bigquery.BQRepoVulnerabilityDetail
-import no.nav.security.bigquery.BQVulnerabilitySource
 import no.nav.security.bigquery.BigQueryRepos
 import no.nav.security.bigquery.BigQueryTeams
 import no.nav.security.bigquery.BigQueryVulnerabilities
-import no.nav.security.bigquery.newestDeployment
+import no.nav.security.bigquery.BqDeploymentDto
 import no.nav.security.bigquery.toBigQueryFormat
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -52,39 +49,14 @@ fun main(args: Array<String>): Unit = runBlocking {
         val naisRepositories = naisApi.repoVulnerabilities()
         logger.info("Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${naisRepositories.sumOf { it.vulnerabilities.size }} vulnerabilities from Nais API")
 
-        val bqRepoVulnerabilities = naisRepositories.map {
-            BQRepoVulnerability(
-                source = BQVulnerabilitySource.NAIS,
-                githubRepository = it.name,
-                vulnerabilities = it.vulnerabilities.map { vuln ->
-                    BQRepoVulnerabilityDetail(
-                        identifiers = listOf(vuln.identifier),
-                        severity = vuln.severity,
-                        suppressed = vuln.suppressed
-                    )
-                }
-            )
-        }
-
         logger.info("Fetching vulnerability data from GitHub...")
         val githubVulns = github.fetchRepositoryVulnerabilities()
         logger.info("Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${githubVulns.sumOf { it.vulnerabilities.size }} vulnerabilities")
 
-        val githubBqVulns = githubVulns.map { vuln ->
-            BQRepoVulnerability(
-                source = BQVulnerabilitySource.GITHUB,
-                githubRepository = vuln.repository,
-                vulnerabilities = vuln.vulnerabilities.map { detail ->
-                    BQRepoVulnerabilityDetail(
-                        identifiers = detail.identifier.map { it.value },
-                        severity = detail.severity,
-                        suppressed = false // We only fetch OPEN vulns from GitHub
-                    )
-                }
-            )
-        }
-
-        val allVulnerabilities = bqRepoVulnerabilities.plus(githubBqVulns)
+        logger.info("Combining vulnerabilities from both sources...")
+        val vulnerabilityCombiner = VulnerabilityCombiner()
+        val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
+        logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
 
         bqVulnerabilities.insert(allVulnerabilities).fold(
             { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
@@ -193,6 +165,12 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
         }
     }
 }
+
+fun newestDeployment(record: BQRepoStat, bqDeploymentDtos: List<BqDeploymentDto>): BqDeploymentDto? =
+    bqDeploymentDtos
+        .filter { it.platform.isNotBlank() }
+        .filter { it.application == record.repositoryName }
+        .maxByOrNull { it.latestDeploy }
 
 internal fun requiredFromEnv(name: String) =
     System.getProperty(name)

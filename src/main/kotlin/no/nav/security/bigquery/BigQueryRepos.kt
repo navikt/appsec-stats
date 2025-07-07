@@ -8,10 +8,7 @@ import com.google.cloud.bigquery.JobInfo
 import com.google.cloud.bigquery.QueryJobConfiguration
 import com.google.cloud.bigquery.Schema
 import com.google.cloud.bigquery.StandardSQLTypeName
-import com.google.cloud.bigquery.StandardTableDefinition
-import com.google.cloud.bigquery.TableDefinition
 import com.google.cloud.bigquery.TableId
-import com.google.cloud.bigquery.TableInfo
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -45,7 +42,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
     """
 
     fun insert(records: List<BQRepoStat>) = runCatching {
-        createOrUpdateTableSchema()
+        bq.createOrUpdateTableSchema(datasetName, tableName, schema)
         val now = Instant.now().epochSecond
         val rows = records.map { it ->
             // Github DateTime format: 2024-01-31T12:06:05Z
@@ -92,29 +89,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
             )
         }
     }
-
-    private fun createOrUpdateTableSchema() {
-        val tableId = TableId.of(datasetName, tableName)
-        val table = bq.getTable(tableId)
-        val tableExists = table != null
-        val tableDefinition: TableDefinition = StandardTableDefinition.of(schema)
-        val tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build()
-
-        if (tableExists) {
-            bq.update(tableInfo)
-        } else {
-            bq.create(tableInfo)
-        }
-    }
 }
-
-fun Instant.toBigQueryFormat() = this.atZone(ZoneId.systemDefault()).toLocalDate().toString()
-
-fun newestDeployment(record: BQRepoStat, bqDeploymentDtos: List<BqDeploymentDto>): BqDeploymentDto? =
-    bqDeploymentDtos
-        .filter { it.platform.isNotBlank() }
-        .filter { it.application == record.repositoryName }
-        .maxByOrNull { it.latestDeploy }
 
 class BQRepoStat(
     val owners: List<String>,
