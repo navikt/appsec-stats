@@ -8,6 +8,9 @@ metadata:
 spec:
   image: "{{ image }}"
   command:
+    - "java"
+    - "-jar"
+    - "app.jar"
     - "--fetch-vulnerabilities"
   schedule: "0 4 * * *"
   ttlSecondsAfterFinished: 300
