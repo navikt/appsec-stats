@@ -123,7 +123,8 @@ class NaisApi(httpClient: HttpClient) {
             }
         }.toSet()
 
-        val updatedRepos = repos.plus(newRepos)
+        // Merge repositories by name, combining vulnerabilities for repositories with the same name
+        val updatedRepos = mergeRepositories(repos, newRepos)
 
         val workloadWithMoreVulns = data.teams.nodes.asSequence()
             .flatMap { team -> team.workloads.nodes.asSequence() }
@@ -192,8 +193,9 @@ class NaisApi(httpClient: HttpClient) {
         image: no.nav.security.repovulnerabilityquery.ContainerImage,
         repos: Set<NaisRepository>
     ): NaisRepository? {
-        val existingVulnerabilities = repos.find { it.name == workloadName.substringAfter("/") }?.vulnerabilities ?: emptySet()
-        val vulnerabilities = image.vulnerabilities.nodes.map { vuln ->
+        val repositoryName = workloadName.substringAfter("/")
+        val existingVulnerabilities = repos.find { it.name == repositoryName }?.vulnerabilities ?: emptySet()
+        val newVulnerabilities = image.vulnerabilities.nodes.map { vuln ->
             NaisVulnerability(
                 identifier = vuln.identifier,
                 severity = vuln.severity.name,
@@ -201,14 +203,14 @@ class NaisApi(httpClient: HttpClient) {
             )
         }.toSet()
 
-
-        return if (vulnerabilities.isNotEmpty()) {
+        return if (newVulnerabilities.isNotEmpty()) {
             NaisRepository(
-                name = workloadName.substringAfter("/"),
-                vulnerabilities = vulnerabilities.plus(existingVulnerabilities)
+                name = repositoryName,
+                vulnerabilities = existingVulnerabilities.plus(newVulnerabilities)
             )
         } else {
-            null // Skip repositories without vulnerabilities
+            // If no new vulnerabilities but we have existing ones, preserve the existing repository
+            repos.find { it.name == repositoryName }
         }
     }
 
@@ -262,6 +264,15 @@ class NaisApi(httpClient: HttpClient) {
         } else {
             updatedDeployments
         }
+    }
+
+    private fun mergeRepositories(existingRepos: Set<NaisRepository>, newRepos: Set<NaisRepository>): Set<NaisRepository> {
+        val repoMap = (existingRepos + newRepos).groupBy { it.name }
+        return repoMap.map { (_, repos) ->
+            repos.reduce { acc, repo ->
+                acc.copy(vulnerabilities = acc.vulnerabilities + repo.vulnerabilities)
+            }
+        }.toSet()
     }
 }
 

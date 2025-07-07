@@ -110,7 +110,7 @@ class GitHub(
             }
         } ?: emptyList()
 
-        val updatedVulnerabilitiesList = vulnerabilitiesList.plus(repositories)
+        val updatedVulnerabilitiesList = mergeGithubRepositories(vulnerabilitiesList, repositories)
 
         // Check if any repository has more vulnerabilities to fetch
         val repoWithMoreVulns = response.data?.organization?.repositories?.nodes?.find { repo ->
@@ -141,6 +141,18 @@ class GitHub(
             )
         } else {
             updatedVulnerabilitiesList
+        }
+    }
+
+    private fun mergeGithubRepositories(
+        existingRepos: List<GithubRepoVulnerabilities>,
+        newRepos: List<GithubRepoVulnerabilities>
+    ): List<GithubRepoVulnerabilities> {
+        val repoMap = (existingRepos + newRepos).groupBy { it.repository }
+        return repoMap.map { (_, repos) ->
+            repos.reduce { acc, repo ->
+                acc.copy(vulnerabilities = acc.vulnerabilities + repo.vulnerabilities)
+            }
         }
     }
 }
