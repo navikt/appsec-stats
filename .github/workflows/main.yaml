@@ -38,7 +38,7 @@ jobs:
         uses: gradle/actions/dependency-submission@ac638b010cf58a27ee6c972d7336334ccaf61c96 # ratchet:gradle/actions/dependency-submission@v3
       - uses: nais/deploy/actions/deploy@e79279e20795c1a03a92e8ae0bad4b770fd4e6d4 # ratchet:nais/deploy/actions/deploy@v2
         env:
-          RESOURCE: .nais/nais.yaml,.nais/alerts.yaml
+          RESOURCE: .nais/nais.yaml,.nais/alerts.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
           IMAGE: ${{ steps.docker-push.outputs.image }}
   trivy:

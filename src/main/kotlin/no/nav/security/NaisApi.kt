@@ -28,6 +28,10 @@ class NaisApi(httpClient: HttpClient) {
         }.toSet()
     }
 
+    suspend fun repoVulnerabilities(): Set<NaisRepository> {
+        return fetchRepoVulnerabilities()
+    }
+
     private tailrec suspend fun fetchTeamStats(
         teamCursor: String? = null,
         repoCursor: String? = null,
@@ -46,7 +50,7 @@ class NaisApi(httpClient: HttpClient) {
             val newTeam = NaisTeam(
                 naisTeam = team.slug,
                 slsaCoverage = team.vulnerabilitySummary.coverage.toInt(),
-                hasDeployedResources = (team.inventoryCounts.applications.total > 0 || team.inventoryCounts.jobs.total > 0),
+                hasDeployedResources = (team.workloads.pageInfo.totalCount > 0),
                 hasGithubRepositories = (team.repositories.nodes.isNotEmpty()),
                 repositories = team.repositories.nodes.map { it.name.substringAfter("/") }.plus(existingTeamRepos)
             )
@@ -81,6 +85,132 @@ class NaisApi(httpClient: HttpClient) {
         }
     }
 
+    private tailrec suspend fun fetchRepoVulnerabilities(
+        teamCursor: String? = null,
+        workloadCursor: String? = null,
+        vulnCursor: String? = null,
+        repos: Set<NaisRepository> = emptySet()
+    ): Set<NaisRepository> {
+        val ghQuery = RepoVulnerabilityQuery(
+            variables = RepoVulnerabilityQuery.Variables(
+                teamsCursor = teamCursor,
+                workloadCursor = workloadCursor,
+                vulnCursor = vulnCursor
+            )
+        )
+        val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> = client.execute(ghQuery)
+        if (response.errors?.isNotEmpty() == true) {
+            throw RuntimeException("Error fetching workloads stats from Nais API: ${response.errors.toString()}")
+        }
+
+        val data = response.data
+        if (data == null) {
+            return repos
+        }
+
+        // Process vulnerabilities from the current page
+        val newRepos = data.teams.nodes.flatMap { team ->
+            team.workloads.nodes.mapNotNull { workload ->
+                when (workload) {
+                    is no.nav.security.repovulnerabilityquery.Application -> {
+                        processWorkloadVulnerabilities(workload.name, workload.image, repos)
+                    }
+                    is no.nav.security.repovulnerabilityquery.Job -> {
+                        processWorkloadVulnerabilities(workload.name, workload.image, repos)
+                    }
+                    else -> null // Skip unknown workload types
+                }
+            }
+        }.toSet()
+
+        val updatedRepos = repos.plus(newRepos)
+
+        val workloadWithMoreVulns = data.teams.nodes.asSequence()
+            .flatMap { team -> team.workloads.nodes.asSequence() }
+            .firstOrNull { workload ->
+                when (workload) {
+                    is no.nav.security.repovulnerabilityquery.Application ->
+                        workload.image.vulnerabilities.pageInfo.hasNextPage
+                    is no.nav.security.repovulnerabilityquery.Job ->
+                        workload.image.vulnerabilities.pageInfo.hasNextPage
+                    else -> false
+                }
+            }
+
+        if (workloadWithMoreVulns != null) {
+            val vulnEndCursor = when (workloadWithMoreVulns) {
+                is no.nav.security.repovulnerabilityquery.Application ->
+                    workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+                is no.nav.security.repovulnerabilityquery.Job ->
+                    workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+                else -> null
+            }
+            val workloadName = when (workloadWithMoreVulns) {
+                is no.nav.security.repovulnerabilityquery.Application -> workloadWithMoreVulns.name
+                is no.nav.security.repovulnerabilityquery.Job -> workloadWithMoreVulns.name
+                else -> "unknown"
+            }
+            logger.info("Workload '$workloadName' has more vulnerabilities (cursor: $vulnEndCursor). Fetching next page.")
+            return fetchRepoVulnerabilities(
+                teamCursor = teamCursor,
+                workloadCursor = workloadCursor,
+                vulnCursor = vulnEndCursor,
+                repos = updatedRepos
+            )
+        }
+
+        val teamWithMoreWorkloads = data.teams.nodes.firstOrNull { team ->
+            team.workloads.pageInfo.hasNextPage
+        }
+
+        if (teamWithMoreWorkloads != null) {
+            logger.info("Team has more workloads (cursor: ${teamWithMoreWorkloads.workloads.pageInfo.endCursor}). Fetching next page.")
+            return fetchRepoVulnerabilities(
+                teamCursor = teamCursor,
+                workloadCursor = teamWithMoreWorkloads.workloads.pageInfo.endCursor,
+                vulnCursor = null,
+                repos = updatedRepos
+            )
+        }
+
+        return if (data.teams.pageInfo.hasNextPage) {
+            logger.info("More teams available (cursor: ${data.teams.pageInfo.endCursor}). Fetching next page.")
+            fetchRepoVulnerabilities(
+                teamCursor = data.teams.pageInfo.endCursor,
+                workloadCursor = null,
+                vulnCursor = null,
+                repos = updatedRepos
+            )
+        } else {
+            logger.info("Pagination complete. Total repositories with vulnerabilities: ${updatedRepos.size}")
+            updatedRepos
+        }
+    }
+
+    private suspend fun processWorkloadVulnerabilities(
+        workloadName: String,
+        image: no.nav.security.repovulnerabilityquery.ContainerImage,
+        repos: Set<NaisRepository>
+    ): NaisRepository? {
+        val existingVulnerabilities = repos.find { it.name == workloadName.substringAfter("/") }?.vulnerabilities ?: emptySet()
+        val vulnerabilities = image.vulnerabilities.nodes.map { vuln ->
+            NaisVulnerability(
+                identifier = vuln.identifier,
+                severity = vuln.severity.name,
+                suppressed = vuln.analysisTrail.suppressed
+            )
+        }.toSet()
+
+
+        return if (vulnerabilities.isNotEmpty()) {
+            NaisRepository(
+                name = workloadName.substringAfter("/"),
+                vulnerabilities = vulnerabilities.plus(existingVulnerabilities)
+            )
+        } else {
+            null // Skip repositories without vulnerabilities
+        }
+    }
 
     private suspend fun fetchEnvironments(): Set<String> {
         val ghQuery = Environments()
@@ -146,5 +276,16 @@ data class NaisTeam(
     val slsaCoverage: Int,
     val hasDeployedResources: Boolean,
     val hasGithubRepositories: Boolean,
-    val repositories: List<String>
+    val repositories: List<String>,
+)
+
+data class NaisRepository(
+    val name: String,
+    val vulnerabilities: Set<NaisVulnerability>
+)
+
+data class NaisVulnerability(
+    val identifier: String,
+    val severity: String,
+    val suppressed: Boolean,
 )

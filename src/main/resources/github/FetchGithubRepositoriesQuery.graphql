@@ -1,30 +1,30 @@
 query (
-    $orgName: String!
-    $repoEndCursor: String
+  $orgName: String!
+  $repoEndCursor: String
 ) {
-    rateLimit {
-        remaining
-    }
-    organization(login: $orgName) {
-        repositories(
-            first: 100
-            after: $repoEndCursor
-            orderBy: { field: CREATED_AT, direction: ASC }
-        ) {
-            totalCount
-            nodes {
-                name
-                isArchived
-                pushedAt
-                hasVulnerabilityAlertsEnabled
-                vulnerabilityAlerts(states: OPEN) {
-                    totalCount
-                }
-            }
-            pageInfo {
-                hasNextPage
-                endCursor
-            }
+  rateLimit {
+    remaining
+  }
+  organization(login: $orgName) {
+    repositories(
+      first: 100
+      after: $repoEndCursor
+      orderBy: { field: CREATED_AT, direction: ASC }
+    ) {
+      totalCount
+      nodes {
+        name
+        isArchived
+        pushedAt
+        hasVulnerabilityAlertsEnabled
+        vulnerabilityAlerts(states: OPEN) {
+          totalCount
         }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
     }
+  }
 }
