@@ -7,6 +7,7 @@ import io.ktor.client.*
 import java.net.URI
 import no.nav.security.deploymentsquery.Application
 import no.nav.security.deploymentsquery.Job
+import no.nav.security.teamstatsquery.RepositoryConnection
 
 class NaisApi(httpClient: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/graphql"
@@ -17,7 +18,7 @@ class NaisApi(httpClient: HttpClient) {
     )
 
     suspend fun teamStats(): Set<NaisTeam> {
-        return fetchTeamStats()
+        return fetchAllTeamStats()
     }
 
     suspend fun deployments(): Set<NaisDeployment> {
@@ -31,6 +32,75 @@ class NaisApi(httpClient: HttpClient) {
     suspend fun repoVulnerabilities(): Set<NaisRepository> {
         return fetchRepoVulnerabilities()
     }
+
+    private suspend fun fetchAllTeamStats(): Set<NaisTeam> {
+        val allTeams = mutableMapOf<String, NaisTeam>()
+        var teamCursor: String? = null
+        var hasNextPage = true
+
+        while (hasNextPage) {
+            val response = executeTeamStatsQuery(teamCursor, null)
+            response.data?.teams?.nodes?.forEach { team ->
+                val teamRepositories = fetchAllRepositoriesForTeam(team.repositories)
+                val existingTeam = allTeams[team.slug]
+                val updatedTeam = NaisTeam(
+                    naisTeam = team.slug,
+                    slsaCoverage = team.vulnerabilitySummary.coverage.toInt(),
+                    hasDeployedResources = (team.workloads.pageInfo.totalCount > 0),
+                    hasGithubRepositories = teamRepositories.isNotEmpty(),
+                    repositories = (existingTeam?.repositories ?: emptyList()) + teamRepositories
+                )
+                allTeams[team.slug] = updatedTeam
+            }
+            hasNextPage = response.data?.teams?.pageInfo?.hasNextPage ?: false
+            if (hasNextPage) {
+                teamCursor = response.data?.teams?.pageInfo?.endCursor
+            }
+        }
+        return allTeams.values.toSet()
+    }
+
+    private suspend fun fetchAllRepositoriesForTeam(
+        initialRepoConnection: RepositoryConnection
+    ): List<String> {
+        val repositories = mutableListOf<String>()
+        repositories.addAll(initialRepoConnection.nodes.map { it.name.substringAfter("/") })
+
+        var repoCursor: String? = initialRepoConnection.pageInfo.endCursor
+        var hasNextRepoPage = initialRepoConnection.pageInfo.hasNextPage
+
+        while (hasNextRepoPage) {
+            val response = executeTeamStatsQuery(null, repoCursor)
+            val teamNode = response.data?.teams?.nodes?.firstOrNull()
+            if (teamNode != null) {
+                repositories.addAll(teamNode.repositories.nodes.map { it.name.substringAfter("/") })
+                hasNextRepoPage = teamNode.repositories.pageInfo.hasNextPage
+                if (hasNextRepoPage) {
+                    repoCursor = teamNode.repositories.pageInfo.endCursor
+                }
+            } else {
+                hasNextRepoPage = false
+            }
+        }
+        return repositories
+    }
+
+    private suspend fun executeTeamStatsQuery(
+        teamCursor: String?,
+        repoCursor: String?
+    ): GraphQLClientResponse<TeamStatsQuery.Result> {
+        val variables =
+            TeamStatsQuery.Variables(teamsCursor = teamCursor, repoCursor = repoCursor)
+        val query = TeamStatsQuery(variables)
+        val response = client.execute(query)
+        if (response.errors?.isNotEmpty() == true) {
+            throw RuntimeException(
+                "Error fetching team stats from NAIS API (teamCursor: $teamCursor, repoCursor: $repoCursor): ${response.errors}"
+            )
+        }
+        return response
+    }
+
 
     private tailrec suspend fun fetchTeamStats(
         teamCursor: String? = null,

@@ -27,7 +27,7 @@ class GitHubAppAuth(
         val jwt = JWT.create()
             .withIssuer(appId)
             .withIssuedAt(Date.from(Instant.now()))
-            .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
+            .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
             .sign(Algorithm.RSA256(null, privateKey))
 
         val response = httpClient.post("https://api.github.com/app/installations/$installationId/access_tokens") {
@@ -36,9 +36,11 @@ class GitHubAppAuth(
                 append(HttpHeaders.Authorization, "Bearer $jwt")
                 append("X-GitHub-Api-Version", "2022-11-28")
             }
-        }
+        }.body<InstallationTokenResponse>()
 
-        return response.body<InstallationTokenResponse>().token
+        logger.info("Fetched installation token for GitHub App with ID $appId and installation ID $installationId, expires at: (${response.expires_at})")
+
+        return response.token
     }
 
     private fun loadPrivateKey(pemContent: String): RSAPrivateKey {
@@ -50,3 +52,4 @@ class GitHubAppAuth(
     @Serializable
     private data class InstallationTokenResponse(val token: String, val expires_at: String)
 }
+

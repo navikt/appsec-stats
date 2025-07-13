@@ -23,8 +23,46 @@ import org.slf4j.LoggerFactory
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(args: Array<String>): Unit = runBlocking {
-    val fetchVulnerabilities = args.contains("--fetch-vulnerabilities")
+    if (args.contains("--fetch-vulnerabilities")) {
+        fetchVulnerabilities()
+    } else {
+        fetchRepositoryStats()
+    }
+}
 
+private suspend fun fetchVulnerabilities() {
+    val bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
+    val appAuth = GitHubAppAuth(
+        appId = requiredFromEnv("GITHUB_APP_ID"),
+        privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
+        installationId = requiredFromEnv("GITHUB_APP_INSTALLATION_ID"),
+        httpClient = httpClient(null)
+    )
+    val githubHttpClient = httpClient(authToken = appAuth.getInstallationToken())
+    val github = GitHub(httpClient = githubHttpClient)
+    val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
+
+    logger.info("Fetching vulnerability data from Nais API...")
+    val naisRepositories = naisApi.repoVulnerabilities()
+    logger.info("Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${naisRepositories.sumOf { it.vulnerabilities.size }} vulnerabilities from Nais API")
+
+    logger.info("Fetching vulnerability data from GitHub...")
+    val githubVulns = github.fetchRepositoryVulnerabilities()
+    logger.info("Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${githubVulns.sumOf { it.vulnerabilities.size }} vulnerabilities")
+
+    logger.info("Combining vulnerabilities from both sources...")
+    val vulnerabilityCombiner = VulnerabilityCombiner()
+    val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
+    logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
+
+    bqVulnerabilities.insert(allVulnerabilities).fold(
+        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
+        { ex -> throw ex }
+    )
+    logger.info("Vulnerability data fetched and inserted into BigQuery. Exiting application.")
+}
+
+private suspend fun fetchRepositoryStats() {
     val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
     val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
 
@@ -40,36 +78,6 @@ fun main(args: Array<String>): Unit = runBlocking {
 
     val github = GitHub(httpClient = githubHttpClient)
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-
-    // Fetch vulnerabilities only if the argument is provided
-    if (fetchVulnerabilities) {
-        val bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-
-        logger.info("Fetching vulnerability data from Nais API...")
-        val naisRepositories = naisApi.repoVulnerabilities()
-        logger.info("Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${naisRepositories.sumOf { it.vulnerabilities.size }} vulnerabilities from Nais API")
-
-        logger.info("Fetching vulnerability data from GitHub...")
-        val githubVulns = github.fetchRepositoryVulnerabilities()
-        logger.info("Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${githubVulns.sumOf { it.vulnerabilities.size }} vulnerabilities")
-
-        logger.info("Combining vulnerabilities from both sources...")
-        val vulnerabilityCombiner = VulnerabilityCombiner()
-        val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
-        logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
-
-        bqVulnerabilities.insert(allVulnerabilities).fold(
-            { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
-            { ex -> throw ex }
-        )
-
-        // If we fetched vulnerabilities, we do not want to run the rest of the application.
-        // So we exit here.
-        logger.info("Vulnerability data fetched and inserted into BigQuery. Exiting application.")
-        return@runBlocking
-    }
-
-
     val teamcatalog = Teamcatalog(httpClient = httpClient(null))
 
     logger.info("Looking for GitHub repos...")
@@ -144,6 +152,12 @@ fun main(args: Array<String>): Unit = runBlocking {
     )
 }
 
+fun newestDeployment(repo: BQRepoStat, deployments: List<BqDeploymentDto>): BqDeploymentDto? =
+    deployments
+        .filter { it.platform.isNotBlank() }
+        .filter { it.application == repo.repositoryName }
+        .maxByOrNull { it.latestDeploy }
+
 internal fun httpClient(authToken: String?) = HttpClient(CIO) {
     expectSuccess = true
     install(HttpRequestRetry) {
@@ -165,12 +179,6 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
         }
     }
 }
-
-fun newestDeployment(record: BQRepoStat, bqDeploymentDtos: List<BqDeploymentDto>): BqDeploymentDto? =
-    bqDeploymentDtos
-        .filter { it.platform.isNotBlank() }
-        .filter { it.application == record.repositoryName }
-        .maxByOrNull { it.latestDeploy }
 
 internal fun requiredFromEnv(name: String) =
     System.getProperty(name)

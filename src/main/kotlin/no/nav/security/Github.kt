@@ -21,7 +21,7 @@ class GitHub(
         httpClient = httpClient
     )
 
-    suspend fun fetchOrgRepositories(
+    tailrec suspend fun fetchOrgRepositories(
         repositoryCursor: String? = null,
         repositoryListe: List<GithubRepository> = emptyList()
     ): List<GithubRepository> {
