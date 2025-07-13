@@ -26,8 +26,8 @@ class GitHubAppAuth(
     suspend fun getInstallationToken(): String {
         val jwt = JWT.create()
             .withIssuer(appId)
-            .withIssuedAt(Date.from(Instant.now()))
-            .withExpiresAt(Date.from(Instant.now().plusSeconds(3600)))
+            .withIssuedAt(Date.from(Instant.now().minusSeconds(60)))
+            .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
             .sign(Algorithm.RSA256(null, privateKey))
 
         val response = httpClient.post("https://api.github.com/app/installations/$installationId/access_tokens") {
