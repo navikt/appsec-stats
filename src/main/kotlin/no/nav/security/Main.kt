@@ -10,6 +10,9 @@ import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
 import no.nav.security.bigquery.BigQueryRepos
@@ -159,10 +162,53 @@ fun newestDeployment(repo: BQRepoStat, deployments: List<BqDeploymentDto>): BqDe
         .maxByOrNull { it.latestDeploy }
 
 internal fun httpClient(authToken: String?) = HttpClient(CIO) {
-    expectSuccess = true
+    expectSuccess = false
     install(HttpRequestRetry) {
-        retryOnServerErrors(maxRetries = 5)
-        exponentialDelay()
+        retryOnServerErrors(maxRetries = 3)
+        retryOnException(maxRetries = 3, retryOnTimeout = true)
+        exponentialDelay(base = 2.0, maxDelayMs = 30000)
+
+        // GitHub-specific retry condition
+        // https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+        retryIf { request, response ->
+            val isRateLimit = (response.status.value == 403 || response.status.value == 429) &&
+                    (response.headers["x-ratelimit-limit"] == "0" ||
+                     response.headers.contains("retry-after"))
+
+            val isServerError = response.status.value >= 500
+            isRateLimit || isServerError
+        }
+
+        // GitHub-specific delay handling
+        delayMillis { retry ->
+            val response = response
+            when {
+                // Primary rate limit: wait until reset time
+                response?.headers?.get("x-ratelimit-remaining") == "0" -> {
+                    val resetTime = response.headers["x-ratelimit-reset"]?.toLongOrNull()
+                    if (resetTime != null) {
+                        val currentTime = System.currentTimeMillis() / 1000
+                        val waitTime = (resetTime - currentTime + 5) * 1000 // Add 5s buffer
+                        max(waitTime, 60000L) // Minimum 1 minute
+                    } else {
+                        300000L // Default 5 minutes
+                    }
+                }
+                // Secondary rate limit with retry-after
+                response?.headers?.get("retry-after") != null -> {
+                    val retryAfter = response.headers["retry-after"]?.toLongOrNull() ?: 60L
+                    (retryAfter + 1) * 1000L // Add 1s buffer
+                }
+                // Secondary rate limit without retry-after: exponential backoff starting at 1 minute
+                response?.status?.value == 403 || response?.status?.value == 429 -> {
+                    val baseWait = 60000L // 1 minute
+                    val exponentialWait = (baseWait * 2.0.pow(retry.toDouble())).toLong()
+                    min(exponentialWait, 600000L) // Cap at 10 minutes
+                }
+                // Standard exponential backoff for other errors
+                else -> (2000L * (retry + 1))
+            }
+        }
     }
     install(ContentNegotiation) {
         json(json = Json {
