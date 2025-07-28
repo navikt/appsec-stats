@@ -12,7 +12,7 @@ val bouncyCastleVersion = "1.81"
 
 val expediaGraphQlVersion = "8.8.1"
 
-val junitVersion = "5.13.3"
+val junitVersion = "5.13.4"
 
 val mainClassName = "no.nav.security.MainKt"
 
