@@ -36,7 +36,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@ac638b010cf58a27ee6c972d7336334ccaf61c96 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@5652af6ee2d906a70651b9282998926a390ff532 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@64b71e5a692448778e9cc27080604e68c8183391 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
@@ -62,7 +62,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8 # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@51f77329afa6477de8c49fc9c7046c15b9a4e79d # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
