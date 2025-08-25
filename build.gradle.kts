@@ -14,12 +14,16 @@ val expediaGraphQlVersion = "8.8.1"
 
 val junitVersion = "5.13.4"
 
-val mainClassName = "no.nav.security.MainKt"
-
 plugins {
     kotlin("jvm") version "2.2.10"
     kotlin("plugin.serialization") version "2.2.10"
     id("com.expediagroup.graphql") version "8.8.1"
+    id("application")
+}
+
+application {
+    mainClass.set("no.nav.security.MainKt")
+    applicationName = "app"
 }
 
 repositories {
@@ -78,25 +82,6 @@ val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::clas
 }
 
 tasks {
-    withType<Jar> {
-        archiveBaseName.set("app")
-
-        manifest {
-            attributes["Main-Class"] = mainClassName
-            attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") {
-                it.name
-            }
-        }
-
-        doLast {
-            configurations.runtimeClasspath.get().forEach {
-                val file = File("${layout.buildDirectory.get()}/libs/${it.name}")
-                if (!file.exists())
-                    it.copyTo(file)
-            }
-        }
-    }
-
     withType<Test> {
         useJUnitPlatform()
         testLogging {
@@ -105,6 +90,6 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "8.14.2"
+        gradleVersion = "9.0.0"
     }
 }

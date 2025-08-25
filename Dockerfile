@@ -1,11 +1,11 @@
+# Use distroless Java image as base image
 FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/jre:openjdk-21
-
-COPY build/libs/*.jar /app/
 
 WORKDIR /app
 
-# Use ENTRYPOINT to allow passing arguments to the JAR
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Copy the prebuilt distribution (run: ./gradlew clean installDist)
+COPY build/install/app/ /app/
 
-# Default CMD is empty, but can be overridden with arguments
+# Run without the shell script (since we dont have a shell)
+ENTRYPOINT ["java", "-cp", "/app/lib/*", "no.nav.security.MainKt"]
 CMD []
