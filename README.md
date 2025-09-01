@@ -16,7 +16,8 @@ By default, the application collects repository and team statistics:
 3. Arguments work the same way with both approaches
 
 ```bash
-java -cp "build/install/app/lib/*" no.nav.security.MainKt```
+java -cp "build/install/app/lib/*" no.nav.security.MainKt
+```
 
 ### Vulnerability Data Collection
 To collect detailed vulnerability data from both NAIS API and GitHub, use the `--fetch-vulnerabilities` argument:
