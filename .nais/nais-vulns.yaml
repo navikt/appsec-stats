@@ -9,8 +9,9 @@ spec:
   image: "{{ image }}"
   command:
     - "java"
-    - "-jar"
-    - "app.jar"
+    - "-cp"
+    - "/app/lib/*"
+    - "no.nav.security.MainKt"
     - "--fetch-vulnerabilities"
   schedule: "0 4 * * *"
   ttlSecondsAfterFinished: 300
