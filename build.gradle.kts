@@ -8,7 +8,7 @@ val logstashEncoderVersion = "8.1"
 val bigQueryClientVersion = "2.55.0"
 val kotlinxDatetimeVersion = "0.7.1-0.6.x-compat"
 val jwtVersion = "4.5.0"
-val bouncyCastleVersion = "1.81"
+val bouncyCastleVersion = "1.82"
 
 val expediaGraphQlVersion = "8.8.1"
 
