@@ -173,10 +173,7 @@ class NaisApi(httpClient: HttpClient) {
             throw RuntimeException("Error fetching workloads stats from Nais API: ${response.errors.toString()}")
         }
 
-        val data = response.data
-        if (data == null) {
-            return repos
-        }
+        val data = response.data ?: return repos
 
         // Process vulnerabilities from the current page
         val newRepos = data.teams.nodes.flatMap { team ->
@@ -269,7 +266,7 @@ class NaisApi(httpClient: HttpClient) {
             NaisVulnerability(
                 identifier = vuln.identifier,
                 severity = vuln.severity.name,
-                suppressed = vuln.analysisTrail.suppressed
+                suppressed = !vuln.suppression?.state?.name.isNullOrEmpty() // False if suppression state is null or empty
             )
         }.toSet()
 
