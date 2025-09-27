@@ -263,10 +263,14 @@ class NaisApi(httpClient: HttpClient) {
         val repositoryName = workloadName.substringAfter("/")
         val existingVulnerabilities = repos.find { it.name == repositoryName }?.vulnerabilities ?: emptySet()
         val newVulnerabilities = image.vulnerabilities.nodes.map { vuln ->
+            val isSuppressed = when (vuln.suppression) {
+                null -> false
+                else -> true
+            }
             NaisVulnerability(
                 identifier = vuln.identifier,
                 severity = vuln.severity.name,
-                suppressed = !vuln.suppression?.state?.name.isNullOrEmpty() // False if suppression state is null or empty
+                suppressed = isSuppressed
             )
         }.toSet()
 
