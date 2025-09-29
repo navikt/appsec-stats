@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # ratchet:actions/setup-java@v4
         with:
-          java-version: 21
+          java-version: 25
           distribution: temurin
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
