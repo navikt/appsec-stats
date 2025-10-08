@@ -33,9 +33,6 @@ spec:
         - host: api.github.com
         - host: console.nav.cloud.nais.io
   observability:
-    autoInstrumentation:
-        enabled: true
-        runtime: java
     logging:
       destinations:
         - id: loki
