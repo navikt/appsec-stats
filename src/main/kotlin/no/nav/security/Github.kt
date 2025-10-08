@@ -77,7 +77,12 @@ class GitHub(
             )
         )
 
-        val response: GraphQLClientResponse<FetchGithubVulnerabilitiesQuery.Result> = graphQlClient.execute(ghQuery)
+        val response: GraphQLClientResponse<FetchGithubVulnerabilitiesQuery.Result> = try {
+            graphQlClient.execute(ghQuery)
+        } catch (e: Exception) {
+            logger.error("Exception during GraphQL execution for vulnerabilities. repoEndCursor=$repoEndCursor, vulnEndCursor=$vulnEndCursor", e)
+            throw e
+        }
 
         response.errors?.let {
             logger.error("Error fetching vulnerabilities from GitHub: $it")
