@@ -56,6 +56,7 @@ class GitHub(
         val nextRepositoryPage = repositoryPageInfo?.endCursor.takeIf { repositoryPageInfo?.hasNextPage ?: false }
 
         if (nextRepositoryPage != null) {
+            logger.info("Fetching next page of repositories with cursor: $nextRepositoryPage")
             return fetchOrgRepositories(repositoryCursor = nextRepositoryPage, oppdatertRepositoryliste)
         }
         return oppdatertRepositoryliste
