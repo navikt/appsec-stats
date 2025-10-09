@@ -6,7 +6,7 @@ query (
 ) {
   organization(login: $orgName) {
     repositories(
-      first: 100
+      first: 30
       isArchived: false
       after: $repoEndCursor
       before: $repoStartCursor
