@@ -77,6 +77,7 @@ class GitHub(
             )
         )
 
+        logger.info("Fetching more vulnerabilities, vulnCount: ${vulnerabilitiesList.size}")
         val response: GraphQLClientResponse<FetchGithubVulnerabilitiesQuery.Result> = try {
             graphQlClient.execute(ghQuery)
         } catch (e: Exception) {
@@ -84,9 +85,18 @@ class GitHub(
             throw e
         }
 
-        response.errors?.let {
-            logger.error("Error fetching vulnerabilities from GitHub: $it")
-            throw RuntimeException("Error fetching vulnerabilities from GitHub: $it")
+        response.errors?.let { errors ->
+            val errorDetails = errors.mapIndexed { index, error ->
+                buildString {
+                    append("\n  Error ${index + 1}:")
+                    append("\n    Message: ${error.message}")
+                    error.path?.let { append("\n    Path: $it") }
+                    error.locations?.let { append("\n    Locations: $it") }
+                    error.extensions?.let { append("\n    Extensions: $it") }
+                }
+            }.joinToString("")
+            logger.error("Error fetching vulnerabilities from GitHub (${errors.size} error(s)):$errorDetails")
+            throw RuntimeException("Error fetching vulnerabilities from GitHub: ${errors.map { it.message }}")
         }
 
         val repositories = response.data?.organization?.repositories?.nodes?.mapNotNull { repo ->

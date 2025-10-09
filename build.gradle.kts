@@ -65,7 +65,7 @@ val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
         "${project.projectDir}/src/main/resources/github/FetchGithubRepositoriesQuery.graphql",
         "${project.projectDir}/src/main/resources/github/FetchGithubVulnerabilitiesQuery.graphql",
     )
-    parserOptions.assign(GraphQLParserOptions(maxTokens = 100000, maxCharacters = 4048576))
+    parserOptions.assign(GraphQLParserOptions(maxTokens = 100000, maxCharacters = 8048576))
     serializer.set(GraphQLSerializer.KOTLINX)
 }
 

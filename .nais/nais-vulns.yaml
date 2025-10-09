@@ -14,7 +14,8 @@ spec:
     - "no.nav.security.MainKt"
     - "--fetch-vulnerabilities"
   schedule: "0 4 * * *"
-  ttlSecondsAfterFinished: 300
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 2
   resources:
     limits:
       memory: "1024Mi"
