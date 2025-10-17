@@ -1,31 +1,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: appsec-stats
+  name: appsec-naisjob-failed
   namespace: appsec
 spec:
   groups:
     - name: appsec
       rules:
         - alert: Naisjob failed
-          expr: kube_job_failed{job_name=~"^appsec-stats.*", namespace="appsec"} > 0
+          expr: kube_job_failed{namespace="appsec"} > 0
           for: 1m
           annotations:
-            description: Naisjob appsec-stats failed
-            consequence: No update to bigquery stats
-            action: "check the logs"
-            summary: |-
-              Notifies if the latest run failed
-          labels:
-            namespace: appsec
-            severity: warning
-        - alert: Naisjob failed
-          expr: kube_job_failed{job_name=~"^appsec-vulnerability-stats.*", namespace="appsec"} > 0
-          for: 1m
-          annotations:
-            description: Naisjob appsec-vulnerability-stats failed
-            consequence: No update to bigquery stats
-            action: "check the logs"
+            description: "Naisjob {{ $labels.job_name }} failed"
+            action: "check the grafana logs for {{ $labels.job_name }} @ https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger"
             summary: |-
               Notifies if the latest run failed
           labels:
