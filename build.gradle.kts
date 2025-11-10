@@ -2,21 +2,21 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 
-val ktorVersion = "3.3.1"
+val ktorVersion = "3.3.2"
 val logbackVersion = "1.5.20"
-val logstashEncoderVersion = "8.1"
-val bigQueryClientVersion = "2.55.2"
+val logstashEncoderVersion = "9.0"
+val bigQueryClientVersion = "2.55.3"
 val kotlinxDatetimeVersion = "0.7.1-0.6.x-compat"
 val jwtVersion = "4.5.0"
 val bouncyCastleVersion = "1.82"
 
 val expediaGraphQlVersion = "8.8.1"
 
-val junitVersion = "6.0.0"
+val junitVersion = "6.0.1"
 
 plugins {
-    kotlin("jvm") version "2.2.20"
-    kotlin("plugin.serialization") version "2.2.20"
+    kotlin("jvm") version "2.2.21"
+    kotlin("plugin.serialization") version "2.2.21"
     id("com.expediagroup.graphql") version "8.8.1"
     id("application")
 }
