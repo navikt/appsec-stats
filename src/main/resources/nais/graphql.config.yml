@@ -1,4 +1,3 @@
 schema:
   - schema.graphqls
-documents:
-  - 'FetchGithubRepositoriesQuery.graphql'
+documents: '/*.graphql'

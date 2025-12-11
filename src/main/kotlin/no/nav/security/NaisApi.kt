@@ -180,9 +180,18 @@ class NaisApi(httpClient: HttpClient) {
 
         if (response.errors?.isNotEmpty() == true) {
             logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor)")
-            logger.error("Error details: ${response.errors}")
-
-            throw RuntimeException("Error fetching workloads stats from Nais API at teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor. Errors: ${response.errors.toString()}")
+            
+            // Log each error individually to avoid serialization issues
+            response.errors?.forEachIndexed { index, error ->
+                try {
+                    logger.error("Error[$index]: message='${error.message}', path=${error.path}, locations=${error.locations}")
+                } catch (e: Exception) {
+                    logger.error("Error[$index]: Failed to serialize error details: ${e.message}")
+                }
+            }
+            
+            logger.error("Stopping processing. Resume with: teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor")
+            throw RuntimeException("Error fetching workloads stats from Nais API at teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor. Check logs for error details.")
         }
 
         val data = response.data ?: return repos
