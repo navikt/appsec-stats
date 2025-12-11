@@ -78,6 +78,7 @@ val graphqlGenerateOtherClient by tasks.creating(GraphQLGenerateClientTask::clas
         file("${project.projectDir}/src/main/resources/nais/DeploymentsQuery.graphql"),
         file("${project.projectDir}/src/main/resources/nais/RepoVulnerabilityQuery.graphql")
     )
+    parserOptions.assign(GraphQLParserOptions(maxTokens = 100000, maxCharacters = 8048576))
     serializer.set(GraphQLSerializer.KOTLINX)
 }
 
