@@ -51,7 +51,12 @@ private suspend fun fetchVulnerabilities() {
     val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
 
     logger.info("Fetching vulnerability data from Nais API...")
-    val naisRepositories = naisApi.repoVulnerabilities()
+    val naisRepositories = try {
+        naisApi.repoVulnerabilities()
+    } catch (e: Exception) {
+        logger.error("Failed to fetch vulnerabilities from Nais API: ${e.message}", e)
+        throw e
+    }
     logger.info("Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${naisRepositories.sumOf { it.vulnerabilities.size }} vulnerabilities from Nais API")
 
     logger.info("Fetching vulnerability data from GitHub...")

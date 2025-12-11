@@ -179,6 +179,10 @@ Service account token was deleted.
 """
 	SERVICE_ACCOUNT_TOKEN_DELETED
 """
+A user was granted access to a postgres cluster
+"""
+	POSTGRES_GRANT_ACCESS
+"""
 Team was created.
 """
 	TEAM_CREATED
@@ -351,6 +355,10 @@ All activity log entries related to secrets will use this resource type.
 """
 	SECRET
 	SERVICE_ACCOUNT
+"""
+All activity log entries related to postgres clusters will use this resource type.
+"""
+	POSTGRES
 """
 All activity log entries related to teams will use this resource type.
 """
@@ -671,7 +679,7 @@ Ordering options for items returned from the connection.
 """
 Filtering options for items returned from the connection.
 """
-		filter: IssueFilter
+		filter: ResourceIssueFilter
 	): IssueConnection!
 """
 BigQuery datasets referenced by the application. This does not currently support pagination, but will return all available datasets.
@@ -767,10 +775,6 @@ Ordering options for items returned from the connection.
 """
 		orderBy: SqlInstanceOrder
 	): SqlInstanceConnection!
-"""
-Status of the application
-"""
-	status: WorkloadStatus!
 	utilization: WorkloadUtilization!
 """
 Valkey instances referenced by the application. This does not currently support pagination, but will return all available Valkey instances.
@@ -790,6 +794,12 @@ Get vulnerability summary from given date until today.
 """
 		from: Date!
 	): ImageVulnerabilityHistory!
+"""
+Get the mean time to fix history for an application.
+"""
+	vulnerabilityFixHistory(
+		from: Date!
+	): VulnerabilityFixHistory!
 }
 
 """
@@ -969,10 +979,6 @@ Order applications by the deployment time.
 Order applications by issue severity
 """
 	ISSUES
-"""
-Order applications by status.
-"""
-	STATUS
 }
 
 type ApplicationResources implements WorkloadResources{
@@ -1114,6 +1120,13 @@ The service account that had a role assigned.
 	serviceAccount: ServiceAccount
 }
 
+type AuditLog {
+"""
+Link to the audit log for this SQL instance.
+"""
+	logUrl: String!
+}
+
 """
 Interface for authentication and authorization integrations.
 
@@ -1224,7 +1237,6 @@ type Bucket implements Persistence & Node{
 	publicAccessPrevention: String!
 	uniformBucketLevelAccess: Boolean!
 	workload: Workload
-	status: BucketStatus!
 }
 
 type BucketConnection {
@@ -1238,11 +1250,6 @@ type BucketEdge {
 	node: Bucket!
 }
 
-type BucketError {
-	message: String!
-	details: String
-}
-
 input BucketOrder {
 	field: BucketOrderField!
 	direction: OrderDirection!
@@ -1251,17 +1258,6 @@ input BucketOrder {
 enum BucketOrderField {
 	NAME
 	ENVIRONMENT
-}
-
-enum BucketState {
-	HEALTHY
-	ERROR
-	UNKNOWN
-}
-
-type BucketStatus {
-	state: BucketState!
-	errors: [BucketError!]!
 }
 
 """
@@ -1274,6 +1270,58 @@ type CPUScalingStrategy {
 The threshold that must be met for the scaling to trigger.
 """
 	threshold: Int!
+}
+
+type CVE implements Node{
+"""
+The globally unique ID of the CVE.
+"""
+	id: ID!
+"""
+The unique identifier of the CVE. E.g. CVE-****-****.
+"""
+	identifier: String!
+"""
+Severity of the CVE.
+"""
+	severity: ImageVulnerabilitySeverity!
+"""
+Title of the CVE
+"""
+	title: String!
+"""
+Description of the CVE.
+"""
+	description: String!
+"""
+Link to the CVE details.
+"""
+	detailsLink: String!
+"""
+CVSS score of the CVE.
+"""
+	cvssScore: Float
+"""
+Affected workloads
+"""
+	workloads(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+	): WorkloadWithVulnerabilityConnection!
 }
 
 input ChangeDeploymentKeyInput {
@@ -1357,7 +1405,7 @@ Whether or not the asynchronous deletion process was started.
 """
 Container image.
 """
-type ContainerImage implements Node{
+type ContainerImage implements Node & ActivityLogger{
 """
 The globally unique ID of the container image node.
 """
@@ -1370,6 +1418,31 @@ Name of the container image.
 Tag of the container image.
 """
 	tag: String!
+"""
+Activity log associated with the container image.
+"""
+	activityLog(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Filter items.
+"""
+		filter: ActivityLogFilter
+	): ActivityLogEntryConnection!
 """
 Whether the image has a software bill of materials (SBOM) attached to it.
 """
@@ -1571,6 +1644,7 @@ input CreateValkeyInput {
 	tier: ValkeyTier!
 	memory: ValkeyMemory!
 	maxMemoryPolicy: ValkeyMaxMemoryPolicy
+	notifyKeyspaceEvents: String
 }
 
 type CreateValkeyPayload {
@@ -1854,6 +1928,10 @@ The deployment.
 	node: Deployment!
 }
 
+input DeploymentFilter {
+	from: Time
+}
+
 """
 Deployment key type.
 """
@@ -2033,6 +2111,14 @@ Unique name of the environment.
 """
 	name: String!
 """
+Query Prometheus metrics directly using PromQL for this environment.
+This allows for flexible metric queries within the specific environment.
+Supports both instant queries and range queries.
+"""
+	metrics(
+		input: MetricsQueryInput!
+	): MetricsQueryResult!
+"""
 Nais workloads in the environment.
 """
 	workloads(
@@ -2142,10 +2228,6 @@ Order by team slug.
 """
 	TEAM_SLUG
 """
-Order by status.
-"""
-	STATUS
-"""
 Order by the deployment time.
 """
 	DEPLOYMENT_TIME
@@ -2164,14 +2246,6 @@ type ExternalNetworkPolicyIpv4 implements ExternalNetworkPolicyTarget{
 interface ExternalNetworkPolicyTarget {
 	target: String!
 	ports: [Int!]!
-}
-
-type FailedJobRunsIssue implements Issue & Node{
-	id: ID!
-	teamEnvironment: TeamEnvironment!
-	severity: Severity!
-	message: String!
-	job: Job!
 }
 
 type FailedSynchronizationIssue implements Issue & Node{
@@ -2254,6 +2328,18 @@ The `Float` scalar type represents signed double-precision fractional values as 
 """
 scalar Float
 
+input GrantPostgresAccessInput {
+	clusterName: String!
+	teamSlug: Slug!
+	environmentName: String!
+	grantee: String!
+	duration: String!
+}
+
+type GrantPostgresAccessPayload {
+	error: String
+}
+
 """
 The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as "4") or integer (such as 4) input value will be accepted as an ID.
 """
@@ -2301,6 +2387,10 @@ Timestamp of when the vulnerability got its current severity.
 Link to the vulnerability details.
 """
 	vulnerabilityDetailsLink: String!
+"""
+CVSS score of the vulnerability.
+"""
+	cvssScore: Float
 }
 
 type ImageVulnerabilityConnection {
@@ -2624,7 +2714,7 @@ enum IssueType {
 	DEPRECATED_INGRESS
 	DEPRECATED_REGISTRY
 	NO_RUNNING_INSTANCES
-	FAILED_JOB_RUNS
+	LAST_RUN_FAILED
 	FAILED_SYNCHRONIZATION
 	INVALID_SPEC
 	MISSING_SBOM
@@ -2753,7 +2843,7 @@ Ordering options for items returned from the connection.
 """
 Filtering options for items returned from the connection.
 """
-		filter: IssueFilter
+		filter: ResourceIssueFilter
 	): IssueConnection!
 """
 BigQuery datasets referenced by the job. This does not currently support pagination, but will return all available datasets.
@@ -2850,10 +2940,6 @@ Ordering options for items returned from the connection.
 		orderBy: SqlInstanceOrder
 	): SqlInstanceConnection!
 """
-Status of the job
-"""
-	status: WorkloadStatus!
-"""
 Valkey instances referenced by the job. This does not currently support pagination, but will return all available Valkey instances.
 """
 	valkeys(
@@ -2871,6 +2957,12 @@ Get vulnerability summary from given date until today.
 """
 		from: Date!
 	): ImageVulnerabilityHistory!
+"""
+Get the mean time to fix history for a job.
+"""
+	vulnerabilityFixHistory(
+		from: Date!
+	): VulnerabilityFixHistory!
 }
 
 union JobAuthIntegrations =EntraIDAuthIntegration | MaskinportenAuthIntegration
@@ -2969,10 +3061,6 @@ Order applications by the deployment time.
 Order jobs by issue severity
 """
 	ISSUES
-"""
-Order jobs by status.
-"""
-	STATUS
 }
 
 type JobResources implements WorkloadResources{
@@ -3302,6 +3390,14 @@ enum KafkaTopicOrderField {
 	ENVIRONMENT
 }
 
+type LastRunFailedIssue implements Issue & Node{
+	id: ID!
+	teamEnvironment: TeamEnvironment!
+	severity: Severity!
+	message: String!
+	job: Job!
+}
+
 interface LogDestination {
 	id: ID!
 }
@@ -3322,6 +3418,43 @@ type LogDestinationSecureLogs implements LogDestination & Node{
 The globally unique ID of the log destination.
 """
 	id: ID!
+}
+
+type LogLine {
+"""
+Timestamp of the log line.
+"""
+	time: Time!
+"""
+The log line message.
+"""
+	message: String!
+"""
+Labels attached to the log line.
+"""
+	labels: [LogLineLabel!]!
+}
+
+type LogLineLabel {
+"""
+The key of the label.
+"""
+	key: String!
+"""
+The value of the label.
+"""
+	value: String!
+}
+
+input LogSubscriptionFilter {
+	environmentName: String!
+	query: String!
+	initialBatch: LogSubscriptionInitialBatch
+}
+
+input LogSubscriptionInitialBatch {
+	start: Time
+	limit: Int
 }
 
 type MaintenanceWindow {
@@ -3345,6 +3478,122 @@ type MaskinportenAuthIntegration implements AuthIntegration{
 The name of the integration.
 """
 	name: String!
+}
+
+"""
+A key-value pair representing a Prometheus label.
+"""
+type MetricLabel {
+"""
+The label name.
+"""
+	name: String!
+"""
+The label value.
+"""
+	value: String!
+}
+
+"""
+A time series with its labels and data points.
+"""
+type MetricSeries {
+"""
+The metric labels as key-value pairs.
+"""
+	labels: [MetricLabel!]!
+"""
+The data points for this time series.
+Instant queries will have a single value.
+Range queries will have multiple values over time.
+"""
+	values: [MetricValue!]!
+}
+
+"""
+A single data point in a time series.
+"""
+type MetricValue {
+"""
+The timestamp of the data point.
+"""
+	timestamp: Time!
+"""
+The value at the given timestamp.
+"""
+	value: Float!
+}
+
+"""
+Input for querying Prometheus metrics.
+"""
+input MetricsQueryInput {
+"""
+Input for querying Prometheus metrics.
+"""
+	query: String!
+"""
+Input for querying Prometheus metrics.
+"""
+	time: Time
+"""
+Input for querying Prometheus metrics.
+"""
+	range: MetricsRangeInput
+}
+
+"""
+Result from a Prometheus metrics query.
+"""
+type MetricsQueryResult {
+"""
+Time series data from the query.
+For instant queries, each series contains a single value.
+For range queries, each series contains multiple values over time.
+"""
+	series: [MetricSeries!]!
+"""
+Warnings returned by Prometheus, if any.
+"""
+	warnings: [String!]!
+}
+
+"""
+Input for Prometheus range queries.
+
+To prevent excessive memory usage, queries are subject to limits:
+- Step must be at least 10 seconds
+- Time range (end - start) cannot exceed 30 days
+- Total data points cannot exceed 11,000
+"""
+input MetricsRangeInput {
+"""
+Input for Prometheus range queries.
+
+To prevent excessive memory usage, queries are subject to limits:
+- Step must be at least 10 seconds
+- Time range (end - start) cannot exceed 30 days
+- Total data points cannot exceed 11,000
+"""
+	start: Time!
+"""
+Input for Prometheus range queries.
+
+To prevent excessive memory usage, queries are subject to limits:
+- Step must be at least 10 seconds
+- Time range (end - start) cannot exceed 30 days
+- Total data points cannot exceed 11,000
+"""
+	end: Time!
+"""
+Input for Prometheus range queries.
+
+To prevent excessive memory usage, queries are subject to limits:
+- Step must be at least 10 seconds
+- Time range (end - start) cannot exceed 30 days
+- Total data points cannot exceed 11,000
+"""
+	step: Int!
 }
 
 type MissingSbomIssue implements Issue & Node{
@@ -3545,6 +3794,12 @@ Start maintenance updates for an OpenSearch instance.
 		input: StartOpenSearchMaintenanceInput!
 	): StartOpenSearchMaintenancePayload
 """
+Grant access to this postgres cluster
+"""
+	grantPostgresAccess(
+		input: GrantPostgresAccessInput!
+	): GrantPostgresAccessPayload!
+"""
 Create a new Nais team
 
 The user creating the team will be granted team ownership, unless the user is a service account, in which case the
@@ -3703,15 +3958,15 @@ This interface is implemented by types that supports the [Global Object Identifi
 	id: ID!
 }
 
-type OpenSearch implements Persistence & Node{
+type OpenSearch implements Persistence & Node & ActivityLogger{
 	id: ID!
 	name: String!
 	team: Team!
 	environment: TeamEnvironment! @deprecated(reason: "Use the `teamEnvironment` field instead.")
 	teamEnvironment: TeamEnvironment!
 	terminationProtection: Boolean!
-	status: OpenSearchStatus!
-	workload: Workload
+	state: OpenSearchState!
+	workload: Workload @deprecated(reason: "OpenSearch does not have a owner, so this field will always be null.")
 	access(
 		first: Int
 		after: Cursor
@@ -3735,6 +3990,60 @@ Available memory for the OpenSearch instance.
 Available storage in GB.
 """
 	storageGB: Int!
+"""
+Issues that affects the instance.
+"""
+	issues(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Ordering options for items returned from the connection.
+"""
+		orderBy: IssueOrder
+"""
+Filtering options for items returned from the connection.
+"""
+		filter: ResourceIssueFilter
+	): IssueConnection!
+"""
+Activity log associated with the reconciler.
+"""
+	activityLog(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Filter items.
+"""
+		filter: ActivityLogFilter
+	): ActivityLogEntryConnection!
 	cost: OpenSearchCost!
 """
 Fetch maintenances updates for the OpenSearch instance.
@@ -3960,10 +4269,19 @@ input OpenSearchOrder {
 enum OpenSearchOrderField {
 	NAME
 	ENVIRONMENT
+	STATE
+"""
+Order OpenSearches by issue severity
+"""
+	ISSUES
 }
 
-type OpenSearchStatus {
-	state: String!
+enum OpenSearchState {
+	POWEROFF
+	REBALANCING
+	REBUILDING
+	RUNNING
+	UNKNOWN
 }
 
 enum OpenSearchTier {
@@ -4103,6 +4421,58 @@ interface Persistence {
 	teamEnvironment: TeamEnvironment!
 }
 
+type Postgres implements Persistence & Node{
+	id: ID!
+	name: String!
+	team: Team!
+	environment: TeamEnvironment! @deprecated(reason: "Use the `teamEnvironment` field instead.")
+	teamEnvironment: TeamEnvironment!
+}
+
+type PostgresGrantAccessActivityLogEntry implements ActivityLogEntry & Node{
+"""
+ID of the entry.
+"""
+	id: ID!
+"""
+The identity of the actor who performed the action. The value is either the name of a service account, or the email address of a user.
+"""
+	actor: String!
+"""
+Creation time of the entry.
+"""
+	createdAt: Time!
+"""
+Message that summarizes the entry.
+"""
+	message: String!
+"""
+Type of the resource that was affected by the action.
+"""
+	resourceType: ActivityLogEntryResourceType!
+"""
+Name of the resource that was affected by the action.
+"""
+	resourceName: String!
+"""
+The team slug that the entry belongs to.
+"""
+	teamSlug: Slug!
+"""
+The environment name that the entry belongs to.
+"""
+	environmentName: String
+"""
+Data associated with the update.
+"""
+	data: PostgresGrantAccessActivityLogEntryData!
+}
+
+type PostgresGrantAccessActivityLogEntryData {
+	grantee: String!
+	until: Time!
+}
+
 type Price {
 	value: Float!
 }
@@ -4220,6 +4590,31 @@ End month of the period, inclusive.
 """
 		to: Date!
 	): CostMonthlySummary!
+"""
+Get a list of deployments.
+"""
+	deployments(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Filter options for the deployments returned from the connection.
+"""
+		filter: DeploymentFilter
+	): DeploymentConnection!
 """
 Get a list of environments.
 """
@@ -4429,6 +4824,18 @@ Get vulnerability summary from given date until today.
 Get the vulnerability summary for the tenant.
 """
 	vulnerabilitySummary: TenantVulnerabilitySummary!
+"""
+Get the mean time to fix history for all teams.
+"""
+	vulnerabilityFixHistory(
+		from: Date!
+	): VulnerabilityFixHistory!
+"""
+Get a specific CVE by its identifier.
+"""
+	cve(
+		identifier: String!
+	): CVE!
 }
 
 """
@@ -4931,6 +5338,11 @@ The delete key for the team. This can be used to confirm the deletion of the tea
 	key: TeamDeleteKey
 }
 
+input ResourceIssueFilter {
+	severity: Severity
+	issueType: IssueType
+}
+
 enum ResourceType {
 	OPENSEARCH
 	VALKEY
@@ -5207,7 +5619,7 @@ Search filter for filtering search results.
 """
 Types that can be searched for.
 """
-union SearchNode =Team | Application | BigQueryDataset | Bucket | Job | KafkaTopic | OpenSearch | SqlInstance | Valkey
+union SearchNode =Team | Application | BigQueryDataset | Bucket | Job | KafkaTopic | OpenSearch | Postgres | SqlInstance | Valkey
 
 """
 Search node connection.
@@ -5258,6 +5670,7 @@ Search for applications.
 	JOB
 	KAFKA_TOPIC
 	OPENSEARCH
+	POSTGRES
 	SQL_INSTANCE
 	VALKEY
 }
@@ -5463,6 +5876,10 @@ The Secret.
 Input for filtering the secrets of a team.
 """
 input SecretFilter {
+"""
+Input for filtering the secrets of a team.
+"""
+	name: String
 """
 Input for filtering the secrets of a team.
 """
@@ -6241,7 +6658,7 @@ type SqlInstance implements Persistence & Node{
 	metrics: SqlInstanceMetrics!
 	state: SqlInstanceState!
 """
-Issues that affects the workload.
+Issues that affects the instance.
 """
 	issues(
 """
@@ -6264,7 +6681,15 @@ Get items before this cursor.
 Ordering options for items returned from the connection.
 """
 		orderBy: IssueOrder
+"""
+Filtering options for items returned from the connection.
+"""
+		filter: ResourceIssueFilter
 	): IssueConnection!
+"""
+Indicates whether audit logging is enabled for this SQL instance and provides a link to the logs if set.
+"""
+	auditLog: AuditLog
 	cost: SqlInstanceCost!
 }
 
@@ -6342,11 +6767,15 @@ enum SqlInstanceOrderField {
 	NAME
 	VERSION
 	ENVIRONMENT
-	STATUS
 	COST
 	CPU_UTILIZATION
 	MEMORY_UTILIZATION
 	DISK_UTILIZATION
+	STATE
+"""
+Order SqlInstances by issue severity
+"""
+	ISSUES
 }
 
 enum SqlInstanceState {
@@ -6433,7 +6862,18 @@ The `String`scalar type represents textual data, represented as UTF-8 character 
 """
 scalar String
 
+"""
+The subscription root for the Nais GraphQL API.
+"""
 type Subscription {
+"""
+Subscribe to log lines
+
+This subscription is used to stream log lines.
+"""
+	log(
+		filter: LogSubscriptionFilter!
+	): LogLine!
 """
 Subscribe to workload logs
 
@@ -6921,6 +7361,12 @@ Get vulnerability summary from given date until today.
 """
 		from: Date!
 	): ImageVulnerabilityHistory!
+"""
+Get the mean time to fix history for a team.
+"""
+	vulnerabilityFixHistory(
+		from: Date!
+	): VulnerabilityFixHistory!
 	vulnerabilitySummary(
 		filter: TeamVulnerabilitySummaryFilter
 	): TeamVulnerabilitySummary!
@@ -7547,11 +7993,6 @@ type TeamInventoryCountApplications {
 Total number of applications.
 """
 	total: Int!
-"""
-Number of applications considered "not nais". When an application is considered "not nais", it means that the
-application might not be working as expected, or that it is not following the Nais guidelines.
-"""
-	notNais: Int!
 }
 
 type TeamInventoryCountBigQueryDatasets {
@@ -7573,10 +8014,6 @@ type TeamInventoryCountJobs {
 Total number of jobs.
 """
 	total: Int!
-"""
-Number of jobs considered not nais.
-"""
-	notNais: Int!
 }
 
 type TeamInventoryCountKafkaTopics {
@@ -8119,14 +8556,6 @@ input TeamWorkloadsFilter {
 Input for filtering team workloads.
 """
 	environments: [String!]
-"""
-Input for filtering team workloads.
-"""
-	states: [WorkloadState!]
-"""
-Input for filtering team workloads.
-"""
-	statusErrorTypes: [WorkloadStatusErrorType!]
 }
 
 type TenantVulnerabilitySummary {
@@ -8441,6 +8870,7 @@ input UpdateValkeyInput {
 	tier: ValkeyTier!
 	memory: ValkeyMemory!
 	maxMemoryPolicy: ValkeyMaxMemoryPolicy
+	notifyKeyspaceEvents: String
 }
 
 type UpdateValkeyPayload {
@@ -8771,7 +9201,7 @@ The instance for the utilization data.
 	instance: String!
 }
 
-type Valkey implements Persistence & Node{
+type Valkey implements Persistence & Node & ActivityLogger{
 	id: ID!
 	name: String!
 	terminationProtection: Boolean!
@@ -8785,8 +9215,8 @@ type Valkey implements Persistence & Node{
 		before: Cursor
 		orderBy: ValkeyAccessOrder
 	): ValkeyAccessConnection!
-	workload: Workload
-	status: ValkeyStatus!
+	workload: Workload @deprecated(reason: "Owners of valkeys have been removed, so this will always be null.")
+	state: ValkeyState!
 """
 Availability tier for the Valkey instance.
 """
@@ -8795,7 +9225,68 @@ Availability tier for the Valkey instance.
 Available memory for the Valkey instance.
 """
 	memory: ValkeyMemory!
+"""
+Maximum memory policy for the Valkey instance.
+"""
 	maxMemoryPolicy: ValkeyMaxMemoryPolicy
+"""
+Keyspace notifications for the Valkey instance. See https://valkey.io/topics/notifications/ for details.
+"""
+	notifyKeyspaceEvents: String
+"""
+Issues that affects the instance.
+"""
+	issues(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Ordering options for items returned from the connection.
+"""
+		orderBy: IssueOrder
+"""
+Filtering options for items returned from the connection.
+"""
+		filter: ResourceIssueFilter
+	): IssueConnection!
+"""
+Activity log associated with the reconciler.
+"""
+	activityLog(
+"""
+Get the first n items in the connection. This can be used in combination with the after parameter.
+"""
+		first: Int
+"""
+Get items after this cursor.
+"""
+		after: Cursor
+"""
+Get the last n items in the connection. This can be used in combination with the before parameter.
+"""
+		last: Int
+"""
+Get items before this cursor.
+"""
+		before: Cursor
+"""
+Filter items.
+"""
+		filter: ActivityLogFilter
+	): ActivityLogEntryConnection!
 	cost: ValkeyCost!
 """
 Fetch maintenances updates for the Valkey instance.
@@ -9047,10 +9538,19 @@ input ValkeyOrder {
 enum ValkeyOrderField {
 	NAME
 	ENVIRONMENT
+	STATE
+"""
+Order Valkeys by issue severity
+"""
+	ISSUES
 }
 
-type ValkeyStatus {
-	state: String!
+enum ValkeyState {
+	POWEROFF
+	REBALANCING
+	REBUILDING
+	RUNNING
+	UNKNOWN
 }
 
 enum ValkeyTier {
@@ -9114,6 +9614,73 @@ The old value of the field.
 The new value of the field.
 """
 	newValue: String
+}
+
+type VulnerabilityActivityLogEntryData {
+"""
+The unique identifier of the vulnerability. E.g. CVE-****-****.
+"""
+	identifier: String!
+"""
+The severity of the vulnerability.
+"""
+	severity: ImageVulnerabilitySeverity!
+"""
+The package affected by the vulnerability.
+"""
+	package: String!
+"""
+The previous suppression state of the vulnerability.
+"""
+	previousSuppression: ImageVulnerabilitySuppression
+"""
+The new suppression state of the vulnerability.
+"""
+	newSuppression: ImageVulnerabilitySuppression
+}
+
+"""
+Trend of mean time to fix vulnerabilities grouped by severity.
+"""
+type VulnerabilityFixHistory {
+"""
+Mean time to fix samples.
+"""
+	samples: [VulnerabilityFixSample!]!
+}
+
+"""
+One MTTR sample for a severity at a point in time.
+"""
+type VulnerabilityFixSample {
+"""
+Severity of vulnerabilities in this sample.
+"""
+	severity: ImageVulnerabilitySeverity!
+"""
+Snapshot date of the sample.
+"""
+	date: Time!
+"""
+Mean time to fix in days.
+"""
+	days: Int!
+"""
+Number of vulnerabilities fixed in this sample.
+"""
+	fixedCount: Int!
+"""
+Earliest time a vulnerability was fixed in this sample.
+"""
+	firstFixedAt: Time
+"""
+Latest time a vulnerability was fixed in this sample.
+"""
+	lastFixedAt: Time
+"""
+Total number of workloads with this severity of vulnerabilities.
+"""
+	totalWorkloads: Int!
 }
 
 """
@@ -9193,11 +9760,15 @@ Name of the resource that was affected by the action.
 """
 The team slug that the entry belongs to.
 """
-	teamSlug: Slug!
+	teamSlug: Slug
 """
 The environment name that the entry belongs to.
 """
 	environmentName: String
+"""
+Data associated with the update.
+"""
+	data: VulnerabilityActivityLogEntryData!
 }
 
 type VulnerableImageIssue implements Issue & Node{
@@ -9303,7 +9874,7 @@ Interface for workloads.
 		last: Int
 		before: Cursor
 		orderBy: IssueOrder
-		filter: IssueFilter
+		filter: ResourceIssueFilter
 	): IssueConnection!
 """
 Interface for workloads.
@@ -9366,10 +9937,6 @@ Interface for workloads.
 """
 Interface for workloads.
 """
-	status: WorkloadStatus!
-"""
-Interface for workloads.
-"""
 	valkeys(
 		orderBy: ValkeyOrder
 	): ValkeyConnection!
@@ -9379,6 +9946,12 @@ Interface for workloads.
 	imageVulnerabilityHistory(
 		from: Date!
 	): ImageVulnerabilityHistory!
+"""
+Interface for workloads.
+"""
+	vulnerabilityFixHistory(
+		from: Date!
+	): VulnerabilityFixHistory!
 }
 
 """
@@ -9530,10 +10103,6 @@ Order by name.
 """
 	NAME
 """
-Order by status.
-"""
-	STATUS
-"""
 Order by the name of the environment the workload is deployed in.
 """
 	ENVIRONMENT
@@ -9605,243 +10174,6 @@ Interface for resources allocated to workloads.
 Interface for resources allocated to workloads.
 """
 	requests: WorkloadResourceQuantity!
-}
-
-"""
-State of the workload
-"""
-enum WorkloadState {
-"""
-Everything is nais
-"""
-	NAIS
-"""
-Something is not nais
-"""
-	NOT_NAIS
-"""
-Something is failing
-"""
-	FAILING
-"""
-Unknown state
-"""
-	UNKNOWN
-}
-
-type WorkloadStatus {
-"""
-State of the workload
-"""
-	state: WorkloadState!
-"""
-Errors related to the workload
-"""
-	errors: [WorkloadStatusError!]!
-}
-
-"""
-Error describing usage of a deprecated ingress
-"""
-type WorkloadStatusDeprecatedIngress implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Deprecated ingress
-"""
-	ingress: String!
-}
-
-"""
-Error describing usage of a deprecated registry
-"""
-type WorkloadStatusDeprecatedRegistry implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Image registry
-"""
-	registry: String!
-"""
-Image repository
-"""
-	repository: String!
-"""
-Image name
-"""
-	name: String!
-"""
-Image tag
-"""
-	tag: String!
-}
-
-"""
-An error for a workload
-"""
-interface WorkloadStatusError {
-"""
-An error for a workload
-"""
-	level: WorkloadStatusErrorLevel!
-}
-
-"""
-Workload status error level
-"""
-enum WorkloadStatusErrorLevel {
-"""
-TODO are errors that should be fixed when possible
-"""
-	TODO
-"""
-WARNING are errors that should be fixed, but are not critical
-"""
-	WARNING
-"""
-ERROR are errors that must be fixed
-"""
-	ERROR
-}
-
-"""
-This enum represents types of errors implementing WorkloadStatusError for use in workload filtering.
-"""
-enum WorkloadStatusErrorType {
-"""
-Error describing usage of a deprecated registry
-"""
-	DEPRECATED_REGISTRY
-"""
-Error describing usage of a deprecated ingress
-"""
-	DEPRECATED_INGRESS
-"""
-Error describing usage of an instance of Cloud SQL with a unsupported version
-"""
-	UNSUPPORTED_CLOUD_SQL_VERSION
-"""
-Error describing that the workload is failing to synchronize
-"""
-	SYNCHRONIZATION_FAILING
-"""
-Error describing that the workload is failing to run
-"""
-	FAILED_RUN
-"""
-Error describing that the workload is missing SBOM
-"""
-	MISSING_SBOM
-"""
-Error describing that the workload is vulnerable
-"""
-	VULNERABLE
-"""
-Workload does not have any active instances, but is requested to have some
-"""
-	NO_RUNNING_INSTANCES
-"""
-Last deployed YAML is invalid
-"""
-	INVALID_NAIS_YAML
-}
-
-"""
-Error describing that the workload is failing to run
-"""
-type WorkloadStatusFailedRun implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Error message
-"""
-	detail: String!
-"""
-Name of the run
-"""
-	name: String!
-}
-
-"""
-The last deployed YAML is invalid
-"""
-type WorkloadStatusInvalidNaisYaml implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Error message
-"""
-	detail: String!
-}
-
-"""
-Error describing that the workload is missing SBOM
-"""
-type WorkloadStatusMissingSBOM implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-}
-
-"""
-A workload does not have any active instances, but is requested to have some
-"""
-type WorkloadStatusNoRunningInstances implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-}
-
-"""
-Error describing that the workload is failing to synchronize
-"""
-type WorkloadStatusSynchronizationFailing implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Error message
-"""
-	detail: String!
-}
-
-"""
-Error describing usage of an instance of Cloud SQL with a unsupported version
-"""
-type WorkloadStatusUnsupportedCloudSQLVersion implements WorkloadStatusError{
-"""
-Error level. Warning if the version is deprecated, error if the version is unsupported.
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Postgres version
-"""
-	version: String!
-}
-
-"""
-Error describing that the workload is missing SBOM
-"""
-type WorkloadStatusVulnerable implements WorkloadStatusError{
-"""
-Error level
-"""
-	level: WorkloadStatusErrorLevel!
-"""
-Vulnerabilities
-"""
-	summary: ImageVulnerabilitySummary!
 }
 
 type WorkloadUtilization {
@@ -9957,6 +10289,37 @@ A cursor for use in pagination.
 The workload vulnerability summary.
 """
 	node: WorkloadVulnerabilitySummary!
+}
+
+type WorkloadWithVulnerability {
+	vulnerability: ImageVulnerability!
+	workload: Workload!
+}
+
+type WorkloadWithVulnerabilityConnection {
+"""
+Information to aid in pagination.
+"""
+	pageInfo: PageInfo!
+"""
+List of edges.
+"""
+	edges: [WorkloadWithVulnerabilityEdge!]!
+"""
+List of nodes.
+"""
+	nodes: [WorkloadWithVulnerability!]!
+}
+
+type WorkloadWithVulnerabilityEdge {
+"""
+A cursor for use in pagination.
+"""
+	cursor: Cursor!
+"""
+The vulnerability.
+"""
+	node: WorkloadWithVulnerability!
 }
 
 

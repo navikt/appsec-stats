@@ -161,6 +161,7 @@ class NaisApi(httpClient: HttpClient) {
         vulnCursor: String? = null,
         repos: Set<NaisRepository> = emptySet()
     ): Set<NaisRepository> {
+        logger.info("Fetching repo vulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor)")
         val ghQuery = RepoVulnerabilityQuery(
             variables = RepoVulnerabilityQuery.Variables(
                 teamsCursor = teamCursor,
@@ -171,6 +172,7 @@ class NaisApi(httpClient: HttpClient) {
         val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> = try {
                 client.execute(ghQuery)
             } catch (e: Exception) {
+                logger.error("Exception executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e)
                 throw RuntimeException(
                     "Error executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e
                 )
@@ -178,7 +180,8 @@ class NaisApi(httpClient: HttpClient) {
 
         if (response.errors?.isNotEmpty() == true) {
             logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${response.errors}")
-            throw RuntimeException("Error fetching workloads stats from Nais API: ${response.errors.toString()}")
+            logger.error("Stopping processing. Resume with: teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor")
+            throw RuntimeException("Error fetching workloads stats from Nais API at teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor. Errors: ${response.errors.toString()}")
         }
 
         val data = response.data ?: return repos
