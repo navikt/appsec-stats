@@ -177,6 +177,7 @@ class NaisApi(httpClient: HttpClient) {
             }
 
         if (response.errors?.isNotEmpty() == true) {
+            logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${response.errors}")
             throw RuntimeException("Error fetching workloads stats from Nais API: ${response.errors.toString()}")
         }
 

@@ -26,10 +26,15 @@ import org.slf4j.LoggerFactory
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
 fun main(args: Array<String>): Unit = runBlocking {
-    if (args.contains("--fetch-vulnerabilities")) {
-        fetchVulnerabilities()
-    } else {
-        fetchRepositoryStats()
+    try {
+        if (args.contains("--fetch-vulnerabilities")) {
+            fetchVulnerabilities()
+        } else {
+            fetchRepositoryStats()
+        }
+    } catch (e: Exception) {
+        logger.error("Application crashed with error: ${e.message}", e)
+        throw e
     }
 }
 
