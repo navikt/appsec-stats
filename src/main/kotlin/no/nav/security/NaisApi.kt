@@ -179,8 +179,9 @@ class NaisApi(httpClient: HttpClient) {
             }
 
         if (response.errors?.isNotEmpty() == true) {
-            logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${response.errors}")
-            logger.error("Stopping processing. Resume with: teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor")
+            logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor)")
+            logger.error("Error details: ${response.errors}")
+
             throw RuntimeException("Error fetching workloads stats from Nais API at teamCursor=$teamCursor, workloadCursor=$workloadCursor, vulnCursor=$vulnCursor. Errors: ${response.errors.toString()}")
         }
 
