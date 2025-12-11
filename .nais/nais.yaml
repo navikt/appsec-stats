@@ -40,7 +40,6 @@ spec:
       enabled: true
       runtime: "java"
       destinations:
-        - id: "elastic-apm"
         - id: "grafana-lgtm"
     logging:
       destinations:
