@@ -36,6 +36,13 @@ spec:
         - host: api.github.com
         - host: console.nav.cloud.nais.io
   observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: "java"
+      destinations:
+        - id: "elastic-apm"
+        - id: "grafana-lgtm"
     logging:
       destinations:
         - id: loki
+        - id: elastic
