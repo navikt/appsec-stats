@@ -168,7 +168,14 @@ class NaisApi(httpClient: HttpClient) {
                 vulnCursor = vulnCursor
             )
         )
-        val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> = client.execute(ghQuery)
+        val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> = try {
+                client.execute(ghQuery)
+            } catch (e: Exception) {
+                throw RuntimeException(
+                    "Error executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e
+                )
+            }
+
         if (response.errors?.isNotEmpty() == true) {
             throw RuntimeException("Error fetching workloads stats from Nais API: ${response.errors.toString()}")
         }
@@ -182,9 +189,11 @@ class NaisApi(httpClient: HttpClient) {
                     is no.nav.security.repovulnerabilityquery.Application -> {
                         processWorkloadVulnerabilities(workload.name, workload.image, repos)
                     }
+
                     is no.nav.security.repovulnerabilityquery.Job -> {
                         processWorkloadVulnerabilities(workload.name, workload.image, repos)
                     }
+
                     else -> null // Skip unknown workload types
                 }
             }
@@ -199,8 +208,10 @@ class NaisApi(httpClient: HttpClient) {
                 when (workload) {
                     is no.nav.security.repovulnerabilityquery.Application ->
                         workload.image.vulnerabilities.pageInfo.hasNextPage
+
                     is no.nav.security.repovulnerabilityquery.Job ->
                         workload.image.vulnerabilities.pageInfo.hasNextPage
+
                     else -> false
                 }
             }
@@ -209,8 +220,10 @@ class NaisApi(httpClient: HttpClient) {
             val vulnEndCursor = when (workloadWithMoreVulns) {
                 is no.nav.security.repovulnerabilityquery.Application ->
                     workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+
                 is no.nav.security.repovulnerabilityquery.Job ->
                     workloadWithMoreVulns.image.vulnerabilities.pageInfo.endCursor
+
                 else -> null
             }
             val workloadName = when (workloadWithMoreVulns) {
@@ -315,11 +328,13 @@ class NaisApi(httpClient: HttpClient) {
                         NaisDeployment(environment = environment, repository = repo, createdAt = deployment.createdAt)
                     }
                 }
+
                 is Job -> workload.deployments.nodes.mapNotNull { deployment ->
                     deployment.repository?.takeIf { it.isNotEmpty() }?.let { repo ->
                         NaisDeployment(environment = environment, repository = repo, createdAt = deployment.createdAt)
                     }
                 }
+
                 else -> emptyList()
             }
         }?.toSet() ?: emptySet()
@@ -337,7 +352,10 @@ class NaisApi(httpClient: HttpClient) {
         }
     }
 
-    private fun mergeRepositories(existingRepos: Set<NaisRepository>, newRepos: Set<NaisRepository>): Set<NaisRepository> {
+    private fun mergeRepositories(
+        existingRepos: Set<NaisRepository>,
+        newRepos: Set<NaisRepository>
+    ): Set<NaisRepository> {
         val repoMap = (existingRepos + newRepos).groupBy { it.name }
         return repoMap.map { (_, repos) ->
             repos.reduce { acc, repo ->

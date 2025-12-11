@@ -221,7 +221,7 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
             header(HttpHeaders.Accept, ContentType.Application.Json)
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             authToken?.let { header(HttpHeaders.Authorization, "Bearer $authToken") }
-            header(UserAgent, "NAV IT McBotFace")
+            header(UserAgent, "appsec-stats")
         }
     }
 }
