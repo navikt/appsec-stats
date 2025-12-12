@@ -173,6 +173,9 @@ fun newestDeployment(repo: BQRepoStat, deployments: List<BqDeploymentDto>): BqDe
 
 internal fun httpClient(authToken: String?) = HttpClient(CIO) {
     expectSuccess = false
+    install(HttpTimeout) {
+        requestTimeoutMillis = 30000
+    }
     install(HttpRequestRetry) {
         retryOnServerErrors(maxRetries = 3)
         retryOnException(maxRetries = 3, retryOnTimeout = true)
