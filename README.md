@@ -5,6 +5,8 @@
 ## Overview
 Application that collects security and deployment statistics for Nav's GitHub repositories, enriches the data with team and product area information, and stores it in BigQuery for analysis.
 
+
+
 Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/) on a schedule set in `.nais/nais.yaml`.
 
 ## Usage
