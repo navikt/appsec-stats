@@ -28,7 +28,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # ratchet:gradle/actions/setup-gradle@v3
       - name: Test & build
         run: ./gradlew test installDist
-      - uses: nais/docker-build-push@1fae4798c79f4af4c3cdbd3fe65e51f8f3ba2368 # ratchet:nais/docker-build-push@v0
+      - uses: nais/docker-build-push@3b44f7c419b9511ad7c8b72174b3cc078d570bed # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: appsec
@@ -36,7 +36,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2 # ratchet:gradle/actions/dependency-submission@v3
-      - uses: nais/deploy/actions/deploy@56e14061f2a8437bd9119e7b8f92749a3b288db1 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1 # ratchet:nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/alerts.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
@@ -62,7 +62,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412 # ratchet:github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@1b168cd39490f61582a9beae412bb7057a6b2c4e # ratchet:github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
