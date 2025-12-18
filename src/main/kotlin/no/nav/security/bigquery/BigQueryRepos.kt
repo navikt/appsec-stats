@@ -9,8 +9,8 @@ import com.google.cloud.bigquery.QueryJobConfiguration
 import com.google.cloud.bigquery.Schema
 import com.google.cloud.bigquery.StandardSQLTypeName
 import com.google.cloud.bigquery.TableId
+import no.nav.security.logger
 import java.time.Instant
-import java.time.ZoneId
 import java.util.UUID
 
 class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
@@ -80,13 +80,32 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
             throw Exception("BigQuery: ${job?.status?.error ?: "unknown error"}")
         }
         val result = job.getQueryResults()
-        result.iterateAll().map { row ->
-            BqDeploymentDto(row["platform"].stringValue,
-                row["cluster"].stringValue.substringAfterLast("-"), // Not interested in dev/prod. Only fss/gcp.
-                row["namespace"].stringValue,
-                row["application"].stringValue,
-                row["latest_deploy"].timestampInstant
-            )
+        result.iterateAll().mapNotNull { row ->
+            try {
+                val platform = row["platform"]?.stringValue
+                val cluster = row["cluster"]?.stringValue
+                val namespace = row["namespace"]?.stringValue
+                val application = row["application"]?.stringValue
+                val latestDeploy = row["latest_deploy"]?.timestampInstant
+
+                // Filter out entries with null or empty fields
+                if (platform.isNullOrEmpty() || cluster.isNullOrEmpty() ||
+                    namespace.isNullOrEmpty() || application.isNullOrEmpty() || latestDeploy == null) {
+                    logger.warn("Ignoring deployment entry with null/empty fields: platform=$platform, cluster=$cluster, namespace=$namespace, application=$application, latestDeploy=$latestDeploy")
+                    null
+                } else {
+                    BqDeploymentDto(
+                        platform,
+                        cluster.substringAfterLast("-"), // Not interested in dev/prod. Only fss/gcp.
+                        namespace,
+                        application,
+                        latestDeploy
+                    )
+                }
+            } catch (e: Exception) {
+                logger.warn("Error processing deployment row: ${e.message}", e)
+                null
+            }
         }
     }
 }
