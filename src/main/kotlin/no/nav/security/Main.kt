@@ -184,9 +184,18 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
         // GitHub-specific retry condition
         // https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
         retryIf { request, response ->
-            val isRateLimit = (response.status.value == 403 || response.status.value == 429) &&
-                    (response.headers["x-ratelimit-limit"] == "0" ||
-                     response.headers.contains("retry-after"))
+            // Always retry on 403 or 429 status codes (rate limits)
+            // Primary rate limit: x-ratelimit-remaining == "0"
+            // Secondary rate limit: may include retry-after header or just return 403/429
+            val isRateLimit = response.status.value == 403 || response.status.value == 429
+
+            if (isRateLimit) {
+                val remaining = response.headers["x-ratelimit-remaining"]
+                val limit = response.headers["x-ratelimit-limit"]
+                val reset = response.headers["x-ratelimit-reset"]
+                val retryAfter = response.headers["retry-after"]
+                logger.warn("Rate limit detected: status=${response.status.value}, remaining=$remaining, limit=$limit, reset=$reset, retry-after=$retryAfter, url=${request.url}")
+            }
 
             val isServerError = response.status.value >= 500
             isRateLimit || isServerError
