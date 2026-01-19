@@ -61,3 +61,4 @@ secure.log
 build
 
 src/test/resources/debug**
+.kotlin/

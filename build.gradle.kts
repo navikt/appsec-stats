@@ -9,6 +9,7 @@ val bigQueryClientVersion = "2.57.1"
 val kotlinxDatetimeVersion = "0.7.1-0.6.x-compat"
 val jwtVersion = "4.5.0"
 val bouncyCastleVersion = "1.83"
+val kafkaVersion = "4.1.1"
 
 val expediaGraphQlVersion = "8.8.1"
 
@@ -42,6 +43,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
 
     implementation("com.expediagroup:graphql-kotlin-ktor-client:$expediaGraphQlVersion")
+
+    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
 
     // GitHub App authentication dependencies
     implementation("com.auth0:java-jwt:$jwtVersion")
