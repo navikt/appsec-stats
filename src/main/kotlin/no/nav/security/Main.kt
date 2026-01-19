@@ -20,6 +20,9 @@ import no.nav.security.bigquery.BigQueryTeams
 import no.nav.security.bigquery.BigQueryVulnerabilities
 import no.nav.security.bigquery.BqDeploymentDto
 import no.nav.security.bigquery.toBigQueryFormat
+import no.nav.security.kafka.GithubRepoStats
+import no.nav.security.kafka.KafkaConfig
+import no.nav.security.kafka.KafkaProducer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -40,6 +43,8 @@ fun main(args: Array<String>): Unit = runBlocking {
 
 private suspend fun fetchVulnerabilities() {
     val bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
+    val kafkaConfig = KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment")
+    val kafkaProducer = KafkaProducer(kafkaConfig)
     val appAuth = GitHubAppAuth(
         appId = requiredFromEnv("GITHUB_APP_ID"),
         privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
@@ -68,6 +73,24 @@ private suspend fun fetchVulnerabilities() {
     val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
     logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
 
+    for(repo in githubVulns) {
+        val message = GithubRepoStats(
+            repositoryName = repo.repository,
+            vulnerabilities = repo.vulnerabilities.map { vuln ->
+                GithubRepoStats.VulnerabilityInfo(
+                    severity = vuln.severity,
+                    identifiers = vuln.identifier.map { id ->
+                        GithubRepoStats.VulnerabilityIdentifier(
+                            value = id.value,
+                            type = id.type
+                        )
+                    }
+                )
+            }
+        ).toJson()
+        kafkaProducer.produce(message = message, key = repo.repository)
+    }
+
     bqVulnerabilities.insert(allVulnerabilities).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
         { ex -> throw ex }
@@ -78,6 +101,8 @@ private suspend fun fetchVulnerabilities() {
 private suspend fun fetchRepositoryStats() {
     val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
     val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
+    val kafkaConfig = KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment")
+    val kafkaProducer = KafkaProducer(kafkaConfig)
 
     val appAuth = GitHubAppAuth(
         appId = requiredFromEnv("GITHUB_APP_ID"),
@@ -149,6 +174,14 @@ private suspend fun fetchRepositoryStats() {
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
         { ex -> throw ex }
     )
+
+    for (repo in repositoriesWithOwners) {
+        val message = GithubRepoStats(
+            repositoryName = repo.repositoryName,
+            naisTeams = repo.owners
+        ).toJson()
+        kafkaProducer.produce(message = message, key = repo.repositoryName)
+    }
 
     val bqNaisTeams = naisTeams.map {
         BQNaisTeam(

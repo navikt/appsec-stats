@@ -10,6 +10,8 @@ spec:
   schedule: "5 22 * * *"
   ttlSecondsAfterFinished: 3600
   backoffLimit: 1
+  kafka:
+    pool: nav-prod
   azure:
     application:
       enabled: true
@@ -22,6 +24,9 @@ spec:
       memory: "128Mi"
   envFrom:
     - secret: appsec-stats-config
+  env:
+    - name: KAFKA_TOPIC
+      value: "appsec.tpt"
   gcp:
     bigQueryDatasets:
       - name: appsec
