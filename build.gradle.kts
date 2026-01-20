@@ -3,7 +3,7 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 
 val ktorVersion = "3.3.3"
-val logbackVersion = "1.5.23"
+val logbackVersion = "1.5.24"
 val logstashEncoderVersion = "9.0"
 val bigQueryClientVersion = "2.57.1"
 val kotlinxDatetimeVersion = "0.7.1-0.6.x-compat"
@@ -13,7 +13,7 @@ val kafkaVersion = "4.1.1"
 
 val expediaGraphQlVersion = "8.8.1"
 
-val junitVersion = "6.0.1"
+val junitVersion = "6.0.2"
 
 plugins {
     kotlin("jvm") version "2.3.0"
