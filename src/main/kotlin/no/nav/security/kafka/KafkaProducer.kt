@@ -19,7 +19,7 @@ class KafkaProducer(
         try {
             val record = ProducerRecord(kafkaConfig.topic, key, message)
             val metadata = producer.send(record).get()
-            logger.info(
+            logger.debug(
                 "Message produced successfully to topic: {}, partition: {}, offset: {}",
                 metadata.topic(),
                 metadata.partition(),
