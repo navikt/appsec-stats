@@ -10,21 +10,27 @@ import org.slf4j.LoggerFactory
 import java.util.Properties
 
 class KafkaProducer(
-    protected val kafkaConfig: KafkaConfig,
+    private val kafkaConfig: KafkaConfig,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaProducer::class.java)
     private val producer: Producer<String, String> by lazy { createProducer() }
+    private val key: String = "appsec-stats"
 
-    fun produce(message: String, key: String? = null) {
+    fun produce(message: String) {
         try {
             val record = ProducerRecord(kafkaConfig.topic, key, message)
-            val metadata = producer.send(record).get()
-            logger.debug(
-                "Message produced successfully to topic: {}, partition: {}, offset: {}",
-                metadata.topic(),
-                metadata.partition(),
-                metadata.offset()
-            )
+            producer.send(record) { metadata, exception ->
+                if (exception != null) {
+                    logger.error("Failed to produce message to topic ${kafkaConfig.topic}", exception)
+                } else {
+                    logger.debug(
+                        "Message produced successfully to topic: {}, partition: {}, offset: {}",
+                        metadata.topic(),
+                        metadata.partition(),
+                        metadata.offset()
+                    )
+                }
+            }
         } catch (e: Exception) {
             logger.error("Failed to produce message to topic ${kafkaConfig.topic}", e)
             throw e
@@ -37,11 +43,14 @@ class KafkaProducer(
             put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaConfig.brokers)
             put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-            put(ProducerConfig.ACKS_CONFIG, "all")
+
+            put(ProducerConfig.ACKS_CONFIG, "1") // Only wait for leader acknowledgment, faster than "all"
             put(ProducerConfig.RETRIES_CONFIG, 3)
             put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
-            put(ProducerConfig.LINGER_MS_CONFIG, 10)
-            put(ProducerConfig.BATCH_SIZE_CONFIG, 16384)
+            put(ProducerConfig.LINGER_MS_CONFIG, 100) // Wait up to 100ms to batch messages
+            put(ProducerConfig.BATCH_SIZE_CONFIG, 32768) // 32KB batch size (increased from 16KB)
+            put(ProducerConfig.BUFFER_MEMORY_CONFIG, 67108864) // 64MB buffer (increased from default 32MB)
+            put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5) // Allow more in-flight requests
 
             // Security configuration
             put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL")

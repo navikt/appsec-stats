@@ -12,7 +12,14 @@ data class GithubRepoStats(
     @Serializable
     data class VulnerabilityInfo(
         val severity: String,
-        val identifiers: List<VulnerabilityIdentifier>
+        val identifiers: List<VulnerabilityIdentifier>,
+        val dependencyScope: String? = null,
+        val dependabotUpdatePullRequestUrl: String? = null,
+        val publishedAt: String? = null,
+        val cvssScore: Double? = null,
+        val summary: String? = null,
+        val packageEcosystem: String? = null,
+        val packageName: String? = null
     )
 
     @Serializable
@@ -23,10 +30,10 @@ data class GithubRepoStats(
 
     companion object {
         private val json = Json {
-            encodeDefaults = false // Don't encode empty lists
+            encodeDefaults = false // Don't encode null values and empty lists
             prettyPrint = false
         }
     }
 
-    fun toJson(): String = json.encodeToString(this)
+    fun toJson(): String = json.encodeToString(serializer(), this)
 }

@@ -84,11 +84,18 @@ private suspend fun fetchVulnerabilities() {
                             value = id.value,
                             type = id.type
                         )
-                    }
+                    },
+                    dependencyScope = vuln.dependencyScope,
+                    dependabotUpdatePullRequestUrl = vuln.dependabotUpdatePullRequestUrl,
+                    publishedAt = vuln.publishedAt,
+                    cvssScore = vuln.cvssScore,
+                    summary = vuln.summary,
+                    packageEcosystem = vuln.packageEcosystem,
+                    packageName = vuln.packageName
                 )
             }
         ).toJson()
-        kafkaProducer.produce(message = message, key = repo.repository)
+        kafkaProducer.produce(message = message)
     }
 
     bqVulnerabilities.insert(allVulnerabilities).fold(
@@ -180,7 +187,7 @@ private suspend fun fetchRepositoryStats() {
             repositoryName = repo.repositoryName,
             naisTeams = repo.owners
         ).toJson()
-        kafkaProducer.produce(message = message, key = repo.repositoryName)
+        kafkaProducer.produce(message = message)
     }
 
     val bqNaisTeams = naisTeams.map {

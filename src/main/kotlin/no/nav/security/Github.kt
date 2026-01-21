@@ -105,12 +105,19 @@ class GitHub(
                     alert?.securityVulnerability?.let { secVuln ->
                         GithubRepoVulnerabilities.GithubVulnerability(
                             severity = secVuln.severity.name,
-                            identifier = secVuln.advisory.identifiers.map { identifier ->
+                            identifier = alert.securityAdvisory?.identifiers?.map { identifier ->
                                 GithubRepoVulnerabilities.GithubVulnerability.GithubVulnerabilityIdentifier(
-                                    value = identifier.value,
+                                    value = identifier.`value`,
                                     type = identifier.type
                                 )
-                            }
+                            } ?: emptyList(),
+                            dependencyScope = alert.dependencyScope?.name,
+                            dependabotUpdatePullRequestUrl = alert.dependabotUpdate?.pullRequest?.permalink,
+                            publishedAt = alert.securityAdvisory?.publishedAt,
+                            cvssScore = alert.securityAdvisory?.cvss?.score,
+                            summary = alert.securityAdvisory?.summary,
+                            packageEcosystem = secVuln.`package`.ecosystem.name,
+                            packageName = secVuln.`package`.name
                         )
                     }
                 } ?: emptyList()
@@ -217,7 +224,14 @@ data class GithubRepoVulnerabilities(
 ) {
     data class GithubVulnerability(
         val severity: String,
-        val identifier: List<GithubVulnerabilityIdentifier>
+        val identifier: List<GithubVulnerabilityIdentifier>,
+        val dependencyScope: String? = null,
+        val dependabotUpdatePullRequestUrl: String? = null,
+        val publishedAt: String? = null,
+        val cvssScore: Double? = null,
+        val summary: String? = null,
+        val packageEcosystem: String? = null,
+        val packageName: String? = null
     ) {
         data class GithubVulnerabilityIdentifier(
             val value: String,
@@ -237,3 +251,4 @@ data class GithubRepository(
 
 typealias DateTime = String
 typealias ID = String // Needed for graphql shenanigans (?)
+typealias URI = String // Needed for graphql shenanigans (?)

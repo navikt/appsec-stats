@@ -13,16 +13,32 @@ query (
       orderBy: { field: CREATED_AT, direction: ASC }
     ) {
       nodes {
+        visibility
         name
         vulnerabilityAlerts(first: 100, after: $vulnEndCursor, states: OPEN) {
           nodes {
+            dependencyScope
+            dependabotUpdate {
+              pullRequest {
+                permalink
+              }
+            }
+            securityAdvisory {
+              publishedAt
+              cvss {
+                score
+              }
+              summary
+              identifiers {
+                type
+                value
+              }
+            }
             securityVulnerability {
               severity
-              advisory {
-                identifiers {
-                  type
-                  value
-                }
+              package {
+                ecosystem
+                name
               }
             }
           }
