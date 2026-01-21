@@ -15,6 +15,7 @@ query (
       nodes {
         visibility
         name
+        nameWithOwner
         vulnerabilityAlerts(first: 100, after: $vulnEndCursor, states: OPEN) {
           nodes {
             dependencyScope

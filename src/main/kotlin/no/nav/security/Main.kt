@@ -75,7 +75,7 @@ private suspend fun fetchVulnerabilities() {
 
     for(repo in githubVulns) {
         val message = GithubRepoStats(
-            repositoryName = repo.repository,
+            repositoryName = repo.nameWithOwner,
             vulnerabilities = repo.vulnerabilities.map { vuln ->
                 GithubRepoStats.VulnerabilityInfo(
                     severity = vuln.severity,

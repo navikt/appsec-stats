@@ -125,6 +125,7 @@ class GitHub(
                 if (vulnerabilities.isNotEmpty()) {
                     GithubRepoVulnerabilities(
                         repository = it.name,
+                        nameWithOwner = it.nameWithOwner,
                         vulnerabilities = vulnerabilities
                     )
                 } else {
@@ -220,6 +221,7 @@ data class Team(
 
 data class GithubRepoVulnerabilities(
     val repository: String,
+    val nameWithOwner: String,
     val vulnerabilities: List<GithubVulnerability>
 ) {
     data class GithubVulnerability(

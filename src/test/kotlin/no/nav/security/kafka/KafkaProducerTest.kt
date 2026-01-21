@@ -75,4 +75,86 @@ class KafkaProducerTest {
         assertFalse(json.contains("\"naisTeams\""))
         assertFalse(json.contains("\"vulnerabilities\""))
     }
+
+    @Test
+    fun `test GithubRepoStats JSON serialization with all vulnerability fields`() {
+        val stats = GithubRepoStats(
+            repositoryName = "navikt/comprehensive-test-repo",
+            naisTeams = listOf("security-team"),
+            vulnerabilities = listOf(
+                GithubRepoStats.VulnerabilityInfo(
+                    severity = "CRITICAL",
+                    identifiers = listOf(
+                        GithubRepoStats.VulnerabilityIdentifier(
+                            value = "CVE-2024-9999",
+                            type = "CVE"
+                        ),
+                        GithubRepoStats.VulnerabilityIdentifier(
+                            value = "GHSA-abcd-efgh-ijkl",
+                            type = "GHSA"
+                        )
+                    ),
+                    dependencyScope = "RUNTIME",
+                    dependabotUpdatePullRequestUrl = "https://github.com/org/repo/pull/42",
+                    publishedAt = "2024-01-15T10:30:00Z",
+                    cvssScore = 9.8,
+                    summary = "Critical vulnerability in dependency",
+                    packageEcosystem = "NPM",
+                    packageName = "vulnerable-package"
+                ),
+                GithubRepoStats.VulnerabilityInfo(
+                    severity = "MODERATE",
+                    identifiers = listOf(
+                        GithubRepoStats.VulnerabilityIdentifier(
+                            value = "CVE-2024-1111",
+                            type = "CVE"
+                        )
+                    ),
+                    dependencyScope = "DEVELOPMENT",
+                    dependabotUpdatePullRequestUrl = null, // No Dependabot PR
+                    publishedAt = "2024-02-20T14:00:00Z",
+                    cvssScore = 5.3,
+                    summary = "Moderate severity issue",
+                    packageEcosystem = "MAVEN",
+                    packageName = "com.example:test-lib"
+                )
+            )
+        )
+
+        val json = stats.toJson()
+
+        // Verify repository and team info
+        assertTrue(json.contains("\"repositoryName\":\"navikt/comprehensive-test-repo\""))
+        assertTrue(json.contains("\"naisTeams\":[\"security-team\"]"))
+
+        // Verify first vulnerability - all fields present
+        assertTrue(json.contains("\"severity\":\"CRITICAL\""))
+        assertTrue(json.contains("\"dependencyScope\":\"RUNTIME\""))
+        assertTrue(json.contains("\"dependabotUpdatePullRequestUrl\":\"https://github.com/org/repo/pull/42\""))
+        assertTrue(json.contains("\"publishedAt\":\"2024-01-15T10:30:00Z\""))
+        assertTrue(json.contains("\"cvssScore\":9.8"))
+        assertTrue(json.contains("\"summary\":\"Critical vulnerability in dependency\""))
+        assertTrue(json.contains("\"packageEcosystem\":\"NPM\""))
+        assertTrue(json.contains("\"packageName\":\"vulnerable-package\""))
+
+        // Verify identifiers for first vulnerability
+        assertTrue(json.contains("\"value\":\"CVE-2024-9999\""))
+        assertTrue(json.contains("\"type\":\"CVE\""))
+        assertTrue(json.contains("\"value\":\"GHSA-abcd-efgh-ijkl\""))
+        assertTrue(json.contains("\"type\":\"GHSA\""))
+
+        // Verify second vulnerability fields
+        assertTrue(json.contains("\"severity\":\"MODERATE\""))
+        assertTrue(json.contains("\"dependencyScope\":\"DEVELOPMENT\""))
+        assertTrue(json.contains("\"cvssScore\":5.3"))
+        assertTrue(json.contains("\"packageEcosystem\":\"MAVEN\""))
+        assertTrue(json.contains("\"packageName\":\"com.example:test-lib\""))
+
+        // Verify null dependabotUpdatePullRequestUrl is omitted (encodeDefaults = false)
+        // The second vulnerability shouldn't have this field in JSON
+        val jsonLines = json.lines()
+        val moderateVulnSection = json.substringAfter("\"MODERATE\"").substringBefore("\"severity\":\"CRITICAL\"")
+        assertFalse(moderateVulnSection.contains("\"dependabotUpdatePullRequestUrl\""),
+            "Null dependabotUpdatePullRequestUrl should be omitted from JSON")
+    }
 }
