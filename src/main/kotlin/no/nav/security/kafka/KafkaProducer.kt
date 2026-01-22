@@ -46,7 +46,6 @@ class KafkaProducer(
 
             put(ProducerConfig.ACKS_CONFIG, "1") // Only wait for leader acknowledgment, faster than "all"
             put(ProducerConfig.RETRIES_CONFIG, 3)
-            put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
             put(ProducerConfig.LINGER_MS_CONFIG, 100) // Wait up to 100ms to batch messages
             put(ProducerConfig.BATCH_SIZE_CONFIG, 32768) // 32KB batch size (increased from 16KB)
             put(ProducerConfig.BUFFER_MEMORY_CONFIG, 67108864) // 64MB buffer (increased from default 32MB)
