@@ -28,12 +28,25 @@ import org.slf4j.LoggerFactory
 
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
+data class AppDependencies(
+    val github: GitHub,
+    val githubHttpClient: HttpClient,
+    val naisApi: NaisApi,
+    val teamcatalog: Teamcatalog,
+    val bqRepo: BigQueryRepos,
+    val bqTeam: BigQueryTeams,
+    val bqVulnerabilities: BigQueryVulnerabilities,
+    val kafkaProducer: KafkaProducer
+)
+
 fun main(args: Array<String>): Unit = runBlocking {
     try {
+        val deps = createProductionDependencies()
+
         if (args.contains("--fetch-vulnerabilities")) {
-            fetchVulnerabilities()
+            fetchVulnerabilities(deps)
         } else {
-            fetchRepositoryStats()
+            fetchRepositoryStats(deps)
         }
     } catch (e: Exception) {
         logger.error("Application crashed with error: ${e.message}", e)
@@ -41,10 +54,7 @@ fun main(args: Array<String>): Unit = runBlocking {
     }
 }
 
-private suspend fun fetchVulnerabilities() {
-    val bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val kafkaConfig = KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment")
-    val kafkaProducer = KafkaProducer(kafkaConfig)
+suspend fun createProductionDependencies(): AppDependencies {
     val appAuth = GitHubAppAuth(
         appId = requiredFromEnv("GITHUB_APP_ID"),
         privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
@@ -52,8 +62,24 @@ private suspend fun fetchVulnerabilities() {
         httpClient = httpClient(null)
     )
     val githubHttpClient = httpClient(authToken = appAuth.getInstallationToken())
-    val github = GitHub(httpClient = githubHttpClient)
-    val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
+
+    return AppDependencies(
+        github = GitHub(httpClient = githubHttpClient),
+        githubHttpClient = githubHttpClient,
+        naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN"))),
+        teamcatalog = Teamcatalog(httpClient = httpClient(null)),
+        bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID")),
+        bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
+        bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
+        kafkaProducer = KafkaProducer(KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment"))
+    )
+}
+
+internal suspend fun fetchVulnerabilities(deps: AppDependencies) {
+    val github = deps.github
+    val naisApi = deps.naisApi
+    val bqVulnerabilities = deps.bqVulnerabilities
+    val kafkaProducer = deps.kafkaProducer
 
     logger.info("Fetching vulnerability data from Nais API...")
     val naisRepositories = try {
@@ -105,25 +131,14 @@ private suspend fun fetchVulnerabilities() {
     logger.info("Vulnerability data fetched and inserted into BigQuery. Exiting application.")
 }
 
-private suspend fun fetchRepositoryStats() {
-    val bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID"))
-    val bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID"))
-    val kafkaConfig = KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment")
-    val kafkaProducer = KafkaProducer(kafkaConfig)
-
-    val appAuth = GitHubAppAuth(
-        appId = requiredFromEnv("GITHUB_APP_ID"),
-        privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
-        installationId = requiredFromEnv("GITHUB_APP_INSTALLATION_ID"),
-        httpClient = httpClient(null)
-    )
-    // Installation token is valid for 60 minutes.
-    // https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation
-    val githubHttpClient = httpClient(authToken = appAuth.getInstallationToken())
-
-    val github = GitHub(httpClient = githubHttpClient)
-    val naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN")))
-    val teamcatalog = Teamcatalog(httpClient = httpClient(null))
+internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
+    val github = deps.github
+    val githubHttpClient = deps.githubHttpClient
+    val naisApi = deps.naisApi
+    val teamcatalog = deps.teamcatalog
+    val bqRepo = deps.bqRepo
+    val bqTeam = deps.bqTeam
+    val kafkaProducer = deps.kafkaProducer
 
     logger.info("Looking for GitHub repos...")
     val githubRepositories = github.fetchOrgRepositories()
