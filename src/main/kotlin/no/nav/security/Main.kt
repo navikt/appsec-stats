@@ -182,10 +182,10 @@ private suspend fun fetchRepositoryStats() {
         { ex -> throw ex }
     )
 
-    for (repo in repositoriesWithOwners) {
+    for (repo in githubRepositories) {
         val message = GithubRepoStats(
-            repositoryName = repo.repositoryName,
-            naisTeams = repo.owners
+            repositoryName = repo.nameWithOwner,
+            naisTeams = repositoriesWithOwners.find { it.repositoryName == repo.name }?.owners ?: emptyList(),
         ).toJson()
         kafkaProducer.produce(message = message)
     }

@@ -44,11 +44,12 @@ class GitHub(
         val oppdatertRepositoryliste =
             repositoryListe.plus(response.data?.organization?.repositories?.nodes?.mapNotNull {
                 if (it != null) GithubRepository(
-                    it.name,
-                    it.isArchived,
-                    it.pushedAt,
-                    it.hasVulnerabilityAlertsEnabled,
-                    it.vulnerabilityAlerts?.totalCount ?: 0
+                    name = it.name,
+                    nameWithOwner = it.nameWithOwner,
+                    isArchived = it.isArchived,
+                    pushedAt = it.pushedAt,
+                    hasVulnerabilityAlertsEnabled = it.hasVulnerabilityAlertsEnabled,
+                    vulnerabilityAlerts = it.vulnerabilityAlerts?.totalCount ?: 0
                 ) else null
             } ?: emptyList())
 
@@ -244,6 +245,7 @@ data class GithubRepoVulnerabilities(
 
 data class GithubRepository(
     val name: String,
+    val nameWithOwner: String,
     val isArchived: Boolean,
     val pushedAt: DateTime?,
     val hasVulnerabilityAlertsEnabled: Boolean,
