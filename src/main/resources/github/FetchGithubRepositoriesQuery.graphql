@@ -4,6 +4,8 @@ query (
 ) {
   rateLimit {
     remaining
+    limit
+    resetAt
   }
   organization(login: $orgName) {
     repositories(

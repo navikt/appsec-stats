@@ -13,7 +13,8 @@ import java.net.URI
 
 class GitHub(
     private val httpClient: HttpClient,
-    baseUrl: String = "https://api.github.com/graphql"
+    baseUrl: String = "https://api.github.com/graphql",
+    private val rateLimitHandler: RateLimitHandler = RateLimitHandler()
 ) {
 
     private val graphQlClient = GraphQLKtorClient(
@@ -36,9 +37,15 @@ class GitHub(
             logger.error("Error fetching repository from GitHub: $it")
             throw RuntimeException("Error fetching repository from GitHub: $it")
         }
-        if (response.data?.rateLimit?.remaining!! < 100) {
-            logger.error("Rate limit is low: ${response.data?.rateLimit?.remaining} (fetchOrgRepositories)")
-            throw RuntimeException("Rate limit is low (<100)")
+        
+        // Check and handle rate limiting
+        response.data?.rateLimit?.let { rateLimit ->
+            rateLimitHandler.checkAndWait(
+                remaining = rateLimit.remaining,
+                limit = rateLimit.limit,
+                resetAt = rateLimit.resetAt,
+                operationName = "fetchOrgRepositories"
+            )
         }
 
         val oppdatertRepositoryliste =
@@ -98,6 +105,16 @@ class GitHub(
             }.joinToString("")
             logger.error("Error fetching vulnerabilities from GitHub (${errors.size} error(s)):$errorDetails")
             throw RuntimeException("Error fetching vulnerabilities from GitHub: ${errors.map { it.message }}")
+        }
+        
+        // Check and handle rate limiting
+        response.data?.rateLimit?.let { rateLimit ->
+            rateLimitHandler.checkAndWait(
+                remaining = rateLimit.remaining,
+                limit = rateLimit.limit,
+                resetAt = rateLimit.resetAt,
+                operationName = "fetchRepositoryVulnerabilities"
+            )
         }
 
         val repositories = response.data?.organization?.repositories?.nodes?.mapNotNull { repo ->

@@ -4,6 +4,11 @@ query (
   $repoStartCursor: String
   $vulnEndCursor: String
 ) {
+  rateLimit {
+    remaining
+    limit
+    resetAt
+  }
   organization(login: $orgName) {
     repositories(
       first: 30

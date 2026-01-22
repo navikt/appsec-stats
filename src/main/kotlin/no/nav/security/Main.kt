@@ -234,10 +234,18 @@ internal fun httpClient(authToken: String?) = HttpClient(CIO) {
                 val limit = response.headers["x-ratelimit-limit"]
                 val reset = response.headers["x-ratelimit-reset"]
                 val retryAfter = response.headers["retry-after"]
-                logger.warn("Rate limit detected: status=${response.status.value}, remaining=$remaining, limit=$limit, reset=$reset, retry-after=$retryAfter, url=${request.url}")
+                logger.warn(
+                    "REST API rate limit detected: status=${response.status.value}, " +
+                    "remaining=$remaining, limit=$limit, reset=$reset, retry-after=$retryAfter, " +
+                    "url=${request.url}"
+                )
             }
 
             val isServerError = response.status.value >= 500
+            if (isServerError) {
+                logger.warn("Server error detected: status=${response.status.value}, url=${request.url}")
+            }
+            
             isRateLimit || isServerError
         }
 
