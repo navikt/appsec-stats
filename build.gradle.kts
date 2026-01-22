@@ -2,23 +2,10 @@ import com.expediagroup.graphql.plugin.gradle.config.GraphQLParserOptions
 import com.expediagroup.graphql.plugin.gradle.config.GraphQLSerializer
 import com.expediagroup.graphql.plugin.gradle.tasks.GraphQLGenerateClientTask
 
-val ktorVersion = "3.3.3"
-val logbackVersion = "1.5.24"
-val logstashEncoderVersion = "9.0"
-val bigQueryClientVersion = "2.57.1"
-val kotlinxDatetimeVersion = "0.7.1-0.6.x-compat"
-val jwtVersion = "4.5.0"
-val bouncyCastleVersion = "1.83"
-val kafkaVersion = "4.1.1"
-
-val expediaGraphQlVersion = "8.8.1"
-
-val junitVersion = "6.0.2"
-
 plugins {
-    kotlin("jvm") version "2.3.0"
-    kotlin("plugin.serialization") version "2.3.0"
-    id("com.expediagroup.graphql") version "8.8.1"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.expedia.graphql)
     id("application")
 }
 
@@ -32,33 +19,27 @@ repositories {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 dependencies {
-    implementation(kotlin("stdlib"))
-    implementation("io.ktor:ktor-client-cio-jvm:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDatetimeVersion")
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.bundles.ktor.client)
+    implementation(libs.kotlinx.datetime)
 
-    implementation("com.expediagroup:graphql-kotlin-ktor-client:$expediaGraphQlVersion")
+    implementation(libs.expedia.graphql.ktor.client)
 
-    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
+    implementation(libs.kafka.clients)
 
-    // GitHub App authentication dependencies
-    implementation("com.auth0:java-jwt:$jwtVersion")
-    implementation("org.bouncycastle:bcpkix-jdk18on:$bouncyCastleVersion")
+    implementation(libs.bundles.github.auth)
 
-    implementation("ch.qos.logback:logback-classic:$logbackVersion")
-    implementation("net.logstash.logback:logstash-logback-encoder:$logstashEncoderVersion")
+    implementation(libs.bundles.logging)
 
-    implementation("com.google.cloud:google-cloud-bigquery:$bigQueryClientVersion")
+    implementation(libs.google.cloud.bigquery)
 
-    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
-    testImplementation(platform("org.junit:junit-bom:$junitVersion"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(platform(libs.junit.bom))
+    implementation(libs.bundles.testing)
+    testImplementation(libs.ktor.client.mock)
 }
 
 val graphqlGenerateClient by tasks.getting(GraphQLGenerateClientTask::class) {
@@ -94,6 +75,6 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "9.2.1"
+        gradleVersion = "9.3.0"
     }
 }
