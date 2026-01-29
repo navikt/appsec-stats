@@ -13,7 +13,7 @@ import no.nav.security.logger
 import java.time.Instant
 import java.util.UUID
 
-class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
+open class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
     private val bq = BigQueryOptions.newBuilder()
         .setProjectId(projectID)
         .build()
@@ -41,7 +41,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
             group by cluster, application, namespace, platform
     """
 
-    fun insert(records: List<BQRepoStat>) = runCatching {
+    open fun insert(records: List<BQRepoStat>) = runCatching {
         bq.createOrUpdateTableSchema(datasetName, tableName, schema)
         val now = Instant.now().epochSecond
         val rows = records.map { it ->
@@ -72,7 +72,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
         records.size
     }
 
-    fun fetchDeployments(): Result<List<BqDeploymentDto>> = runCatching {
+    open fun fetchDeployments(): Result<List<BqDeploymentDto>> = runCatching {
         val queryConfig = QueryJobConfiguration
             .newBuilder(deploymentQuery).build()
         val job = bq.create(JobInfo.newBuilder(queryConfig).build()).waitFor()

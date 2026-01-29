@@ -9,14 +9,14 @@ import org.apache.kafka.common.serialization.StringSerializer
 import org.slf4j.LoggerFactory
 import java.util.Properties
 
-class KafkaProducer(
+open class KafkaProducer(
     private val kafkaConfig: KafkaConfig,
 ) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(KafkaProducer::class.java)
     private val producer: Producer<String, String> by lazy { createProducer() }
     private val key: String = "appsec-stats"
 
-    fun produce(message: String) {
+    open fun produce(message: String) {
         try {
             val record = ProducerRecord(kafkaConfig.topic, key, message)
             producer.send(record) { metadata, exception ->
