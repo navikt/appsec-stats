@@ -200,7 +200,10 @@ class GitHub(
 }
 
 suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient, concurrencyLevel: Int = 10): List<GithubRepository> = coroutineScope {
-    chunked(100) // Process repositories in chunks of 100
+    var errorCount = 0
+    var successCount = 0
+
+    val result = chunked(100) // Process repositories in chunks of 100
         .flatMap { chunk ->
             chunk.map { repo ->
                 async(Dispatchers.IO) {
@@ -215,13 +218,23 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient,
                         val teams: List<Team> = response.body()
                         val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
 
+                        successCount++
                         if (adminTeams.isNotEmpty()) {
                             repo.copy(adminTeams = adminTeams)
                         } else {
                             repo
                         }
                     } catch (e: Exception) {
-                        logger.error("Error fetching admin teams for repository ${repo.name}: ${e.message}")
+                        errorCount++
+                        // Log with more context about the error type
+                        when {
+                            e.message?.contains("500") == true ->
+                                logger.warn("GitHub API server error (500) fetching teams for ${repo.name}")
+                            e.message?.contains("403") == true || e.message?.contains("429") == true ->
+                                logger.warn("Rate limit error fetching teams for ${repo.name}: ${e.message}")
+                            else ->
+                                logger.warn("Error fetching teams for ${repo.name}: ${e.message}")
+                        }
                         repo
                     }
                 }
@@ -229,6 +242,12 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient,
                 runBlocking { windowOfDeferred.awaitAll() }
             }.flatten() // Flatten the results of each window
         }
+
+    if (errorCount > 0) {
+        logger.info("Fetched admin teams: $successCount successful, $errorCount failed")
+    }
+
+    result
 }
 
 @Serializable

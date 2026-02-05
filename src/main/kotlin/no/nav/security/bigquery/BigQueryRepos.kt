@@ -82,16 +82,23 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
         val result = job.getQueryResults()
         result.iterateAll().mapNotNull { row ->
             try {
-                val platform = row["platform"]?.stringValue
-                val cluster = row["cluster"]?.stringValue
-                val namespace = row["namespace"]?.stringValue
-                val application = row["application"]?.stringValue
-                val latestDeploy = row["latest_deploy"]?.timestampInstant
+                // Safely get field values, checking for null before calling getStringValue()
+                val platformField = row["platform"]
+                val clusterField = row["cluster"]
+                val namespaceField = row["namespace"]
+                val applicationField = row["application"]
+                val latestDeployField = row["latest_deploy"]
+
+                val platform = if (platformField != null && !platformField.isNull) platformField.stringValue else null
+                val cluster = if (clusterField != null && !clusterField.isNull) clusterField.stringValue else null
+                val namespace = if (namespaceField != null && !namespaceField.isNull) namespaceField.stringValue else null
+                val application = if (applicationField != null && !applicationField.isNull) applicationField.stringValue else null
+                val latestDeploy = if (latestDeployField != null && !latestDeployField.isNull) latestDeployField.timestampInstant else null
 
                 // Filter out entries with null or empty fields
                 if (platform.isNullOrEmpty() || cluster.isNullOrEmpty() ||
                     namespace.isNullOrEmpty() || application.isNullOrEmpty() || latestDeploy == null) {
-                    logger.warn("Ignoring deployment entry with null/empty fields: platform=$platform, cluster=$cluster, namespace=$namespace, application=$application, latestDeploy=$latestDeploy")
+                    logger.debug("Ignoring deployment entry with null/empty fields: platform=$platform, cluster=$cluster, namespace=$namespace, application=$application, latestDeploy=$latestDeploy")
                     null
                 } else {
                     BqDeploymentDto(
@@ -103,7 +110,7 @@ class BigQueryRepos(projectID: String, naisAnalyseProjectId: String) {
                     )
                 }
             } catch (e: Exception) {
-                logger.warn("Error processing deployment row: ${e.message}", e)
+                logger.debug("Error processing deployment row: ${e.message}", e)
                 null
             }
         }
