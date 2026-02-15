@@ -11,7 +11,7 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import java.net.URI
 
-class GitHub(
+open class GitHub(
     private val httpClient: HttpClient,
     baseUrl: String = "https://api.github.com/graphql",
     private val rateLimitHandler: RateLimitHandler = RateLimitHandler()
@@ -22,7 +22,7 @@ class GitHub(
         httpClient = httpClient
     )
 
-    tailrec suspend fun fetchOrgRepositories(
+    open suspend fun fetchOrgRepositories(
         repositoryCursor: String? = null,
         repositoryListe: List<GithubRepository> = emptyList()
     ): List<GithubRepository> {
@@ -70,7 +70,7 @@ class GitHub(
         return oppdatertRepositoryliste
     }
 
-    tailrec suspend fun fetchRepositoryVulnerabilities(
+    open suspend fun fetchRepositoryVulnerabilities(
         repoEndCursor: String? = null,
         repoStartCursor: String? = null,
         vulnEndCursor: String? = null,
