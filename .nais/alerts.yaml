@@ -3,18 +3,21 @@ kind: PrometheusRule
 metadata:
   name: appsec-naisjob-failed
   namespace: appsec
+  labels:
+    team: appsec
 spec:
   groups:
     - name: appsec
       rules:
-        - alert: Naisjob failed
-          expr: kube_job_failed{namespace="appsec"} > 0
+        - alert: NaisjobFailed
+          expr: kube_job_failed{namespace="appsec", condition="true"} > 0
           for: 1m
           annotations:
-            description: "Naisjob {{ $labels.job_name }} failed"
-            action: "check the grafana logs for {{ $labels.job_name }} @ https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger"
-            summary: |-
-              Notifies if the latest run failed
+            summary: "A Naisjob in the appsec namespace has failed"
+            message: "Naisjob `{{ $labels.job_name }}` has a failed run."
+            consequence: "Scheduled data processing may be incomplete or missing."
+            action: "Check the logs in Grafana for the failing job and look for errors or exceptions."
+            dashboard_url: "https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger?var-app={{ $labels.job_name }}&var-namespace=appsec"
           labels:
             namespace: appsec
             severity: warning
