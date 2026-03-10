@@ -9,7 +9,7 @@ import no.nav.security.deploymentsquery.Application
 import no.nav.security.deploymentsquery.Job
 import no.nav.security.teamstatsquery.RepositoryConnection
 
-class NaisApi(httpClient: HttpClient) {
+open class NaisApi(httpClient: HttpClient) {
     private val baseUrl = "https://console.nav.cloud.nais.io/graphql"
     private val client = GraphQLKtorClient(
         url = URI(baseUrl).toURL(),
@@ -17,11 +17,11 @@ class NaisApi(httpClient: HttpClient) {
         serializer = GraphQLClientKotlinxSerializer()
     )
 
-    suspend fun teamStats(): Set<NaisTeam> {
+    open suspend fun teamStats(): Set<NaisTeam> {
         return fetchAllTeamStats()
     }
 
-    suspend fun deployments(): Set<NaisDeployment> {
+    open suspend fun deployments(): Set<NaisDeployment> {
         val environments = fetchEnvironments()
         logger.info("Fetched ${environments.size} environment profiles: ${environments.joinToString(", ")}")
         return environments.flatMap { environment ->
@@ -29,7 +29,7 @@ class NaisApi(httpClient: HttpClient) {
         }.toSet()
     }
 
-    suspend fun repoVulnerabilities(): Set<NaisRepository> {
+    open suspend fun repoVulnerabilities(): Set<NaisRepository> {
         return fetchRepoVulnerabilities()
     }
 

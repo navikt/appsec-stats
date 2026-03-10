@@ -10,7 +10,7 @@ import com.google.cloud.bigquery.TableId
 import java.time.Instant
 import java.util.*
 
-class BigQueryVulnerabilities(projectID: String) {
+open class BigQueryVulnerabilities(projectID: String) {
     private val bq = BigQueryOptions.newBuilder()
         .setProjectId(projectID)
         .build()
@@ -25,7 +25,7 @@ class BigQueryVulnerabilities(projectID: String) {
             Field.of("vulnerabilityCount", StandardSQLTypeName.INT64)
         )
 
-    fun insert(records: List<BQRepoVulnerabilities>) = runCatching {
+    open fun insert(records: List<BQRepoVulnerabilities>) = runCatching {
         bq.createOrUpdateTableSchema(datasetName, tableName, schema)
         val now = Instant.now().epochSecond
         val rows = records.map { repo ->
