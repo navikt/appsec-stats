@@ -10,7 +10,7 @@ import com.google.cloud.bigquery.TableId
 import java.time.Instant
 import java.util.*
 
-class BigQueryTeams(projectID: String) {
+open class BigQueryTeams(projectID: String) {
     private val bq = BigQueryOptions.newBuilder()
         .setProjectId(projectID)
         .build()
@@ -27,7 +27,7 @@ class BigQueryTeams(projectID: String) {
             Field.of("hasGithubRepositories", StandardSQLTypeName.BOOL),
         )
 
-    fun insert(records: List<BQNaisTeam>) = runCatching {
+    open fun insert(records: List<BQNaisTeam>) = runCatching {
         bq.createOrUpdateTableSchema(datasetName, tableName, schema)
         val now = Instant.now().epochSecond
         val rows = records.map {
