@@ -28,7 +28,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
       - name: Test & build
         run: ./gradlew test installDist
-      - uses: nais/docker-build-push@078e460885ed0424b60d45ce9220b4be1748be9d # ratchet:nais/docker-build-push@v0
+      - uses: nais/docker-build-push@cd5ec5663feb0e05c3fa374d1fb442605b046c6b # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: appsec
@@ -52,7 +52,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: nais/login@c88ada9ce583928e1c84d2fd5c45cfacdd18d5de # v0
+      - uses: nais/login@d6ab5d83f735e9f155eb9d7d29cd20ae46820ea9 # v0
         with:
           team: appsec
       - uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
