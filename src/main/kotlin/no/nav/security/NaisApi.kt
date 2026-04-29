@@ -4,7 +4,9 @@ import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
 import com.expediagroup.graphql.client.serialization.GraphQLClientKotlinxSerializer
 import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import java.net.URI
+import kotlinx.coroutines.delay
 import no.nav.security.deploymentsquery.Application
 import no.nav.security.deploymentsquery.Job
 import no.nav.security.teamstatsquery.RepositoryConnection
@@ -162,21 +164,8 @@ open class NaisApi(httpClient: HttpClient) {
         repos: Set<NaisRepository> = emptySet()
     ): Set<NaisRepository> {
         logger.info("Fetching repo vulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor)")
-        val ghQuery = RepoVulnerabilityQuery(
-            variables = RepoVulnerabilityQuery.Variables(
-                teamsCursor = teamCursor,
-                workloadCursor = workloadCursor,
-                vulnCursor = vulnCursor
-            )
-        )
-        val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> = try {
-                client.execute(ghQuery)
-            } catch (e: Exception) {
-                logger.error("Exception executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e)
-                throw RuntimeException(
-                    "Error executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e
-                )
-            }
+        val response: GraphQLClientResponse<RepoVulnerabilityQuery.Result> =
+            executeWithRetry(teamCursor, workloadCursor, vulnCursor)
 
         if (response.errors?.isNotEmpty() == true) {
             logger.error("GraphQL errors in fetchRepoVulnerabilities (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor)")
@@ -280,6 +269,40 @@ open class NaisApi(httpClient: HttpClient) {
             logger.info("Pagination complete. Total repositories with vulnerabilities: ${updatedRepos.size}")
             updatedRepos
         }
+    }
+
+    private suspend fun executeWithRetry(
+        teamCursor: String?,
+        workloadCursor: String?,
+        vulnCursor: String?,
+        maxRetries: Int = 3
+    ): GraphQLClientResponse<RepoVulnerabilityQuery.Result> {
+        val ghQuery = RepoVulnerabilityQuery(
+            variables = RepoVulnerabilityQuery.Variables(
+                teamsCursor = teamCursor,
+                workloadCursor = workloadCursor,
+                vulnCursor = vulnCursor
+            )
+        )
+        var lastException: Exception? = null
+        repeat(maxRetries) { attempt ->
+            try {
+                return client.execute(ghQuery)
+            } catch (e: HttpRequestTimeoutException) {
+                lastException = e
+                val delayMs = 10000L * (attempt + 1)
+                logger.warn("Timeout on attempt ${attempt + 1}/$maxRetries for RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor). Retrying in ${delayMs}ms.")
+                delay(delayMs)
+            } catch (e: Exception) {
+                logger.error("Exception executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e)
+                throw RuntimeException(
+                    "Error executing RepoVulnerabilityQuery (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${e.message}", e
+                )
+            }
+        }
+        throw RuntimeException(
+            "Error executing RepoVulnerabilityQuery after $maxRetries attempts (teamCursor: $teamCursor, workloadCursor: $workloadCursor, vulnCursor: $vulnCursor): ${lastException?.message}", lastException
+        )
     }
 
     private suspend fun processWorkloadVulnerabilities(
