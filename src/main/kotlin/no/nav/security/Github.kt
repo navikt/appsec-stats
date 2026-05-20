@@ -37,7 +37,7 @@ private val fetchGithubVulnerabilitiesQuery = """
     query (${'$'}orgName: String!, ${'$'}repoEndCursor: String, ${'$'}repoStartCursor: String, ${'$'}vulnEndCursor: String) {
       rateLimit { remaining limit resetAt }
       organization(login: ${'$'}orgName) {
-        repositories(first: 1, after: ${'$'}repoEndCursor, before: ${'$'}repoStartCursor, orderBy: { field: CREATED_AT, direction: ASC }) {
+        repositories(first: 30, isArchived: false, after: ${'$'}repoEndCursor, before: ${'$'}repoStartCursor, orderBy: { field: CREATED_AT, direction: ASC }) {
           nodes {
             name nameWithOwner
             vulnerabilityAlerts(first: 100, after: ${'$'}vulnEndCursor, states: OPEN) {
