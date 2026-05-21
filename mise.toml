@@ -1,2 +1,3 @@
 [tools]
-java = "25"
+gradle = "latest"
+java = "temurin-25"
