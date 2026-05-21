@@ -152,7 +152,6 @@ class KafkaProducerTest {
 
         // Verify null dependabotUpdatePullRequestUrl is omitted (encodeDefaults = false)
         // The second vulnerability shouldn't have this field in JSON
-        val jsonLines = json.lines()
         val moderateVulnSection = json.substringAfter("\"MODERATE\"").substringBefore("\"severity\":\"CRITICAL\"")
         assertFalse(moderateVulnSection.contains("\"dependabotUpdatePullRequestUrl\""),
             "Null dependabotUpdatePullRequestUrl should be omitted from JSON")

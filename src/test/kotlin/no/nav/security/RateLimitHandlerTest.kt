@@ -19,16 +19,5 @@ class RateLimitHandlerTest {
         
         assertFalse(shouldRetry, "Should not retry after max attempts reached")
     }
-    
-    @Test
-    fun `should allow retry within max attempts without actually waiting`() {
-        val handler = RateLimitHandler()
-        
-        // Test logic only - don't actually call retryWithBackoff as it has delays
-        val attempt = 0
-        val maxAttempts = 3
-        val shouldRetry = attempt < maxAttempts
-        
-        assertTrue(shouldRetry, "Should indicate retry on first attempt")
-    }
+
 }
