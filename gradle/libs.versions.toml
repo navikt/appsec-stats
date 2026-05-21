@@ -8,7 +8,6 @@ kotlinx-datetime = "0.8.0-0.6.x-compat"
 jwt = "4.5.2"
 bouncy-castle = "1.84"
 kafka = "4.2.0"
-expedia-graphql = "9.2.0"
 junit = "6.0.3"
 
 [libraries]
@@ -20,8 +19,6 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
-
-expedia-graphql-ktor-client = { module = "com.expediagroup:graphql-kotlin-ktor-client", version.ref = "expedia-graphql" }
 
 kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
 
@@ -40,8 +37,6 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-expedia-graphql = { id = "com.expediagroup.graphql", version.ref = "expedia-graphql" }
-
 [bundles]
 ktor-client = [
     "ktor-client-cio",

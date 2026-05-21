@@ -1,44 +1,89 @@
 package no.nav.security
 
-import com.expediagroup.graphql.client.ktor.GraphQLKtorClient
-import com.expediagroup.graphql.client.types.GraphQLClientResponse
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.contentType
 import io.ktor.http.headers
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
-import java.net.URI
+import kotlinx.serialization.json.Json
+import no.nav.security.dto.GithubRepositoriesResponse
+import no.nav.security.dto.GithubVulnerabilitiesResponse
+
+private val json = Json { ignoreUnknownKeys = true; explicitNulls = false }
+
+private val fetchGithubRepositoriesQuery = """
+    query (${'$'}orgName: String!, ${'$'}repoEndCursor: String) {
+      rateLimit { remaining limit resetAt }
+      organization(login: ${'$'}orgName) {
+        repositories(first: 100, after: ${'$'}repoEndCursor, orderBy: { field: CREATED_AT, direction: ASC }) {
+          totalCount
+          nodes {
+            name nameWithOwner isArchived pushedAt hasVulnerabilityAlertsEnabled
+            vulnerabilityAlerts(states: OPEN) { totalCount }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+""".trimIndent()
+
+private val fetchGithubVulnerabilitiesQuery = """
+    query (${'$'}orgName: String!, ${'$'}repoEndCursor: String, ${'$'}repoStartCursor: String, ${'$'}vulnEndCursor: String) {
+      rateLimit { remaining limit resetAt }
+      organization(login: ${'$'}orgName) {
+        repositories(first: 30, isArchived: false, after: ${'$'}repoEndCursor, before: ${'$'}repoStartCursor, orderBy: { field: CREATED_AT, direction: ASC }) {
+          nodes {
+            name nameWithOwner
+            vulnerabilityAlerts(first: 100, after: ${'$'}vulnEndCursor, states: OPEN) {
+              nodes {
+                dependencyScope
+                dependabotUpdate { pullRequest { permalink } }
+                securityAdvisory {
+                  publishedAt
+                  cvss { score }
+                  summary
+                  identifiers { value type }
+                }
+                securityVulnerability {
+                  severity
+                  package { ecosystem name }
+                }
+              }
+              pageInfo { hasNextPage endCursor }
+            }
+          }
+          pageInfo { hasNextPage endCursor startCursor }
+        }
+      }
+    }
+""".trimIndent()
 
 open class GitHub(
     private val httpClient: HttpClient,
-    baseUrl: String = "https://api.github.com/graphql",
+    private val baseUrl: String = "https://api.github.com/graphql",
     private val rateLimitHandler: RateLimitHandler = RateLimitHandler()
 ) {
-
-    private val graphQlClient = GraphQLKtorClient(
-        url = URI(baseUrl).toURL(),
-        httpClient = httpClient
-    )
 
     open suspend fun fetchOrgRepositories(
         repositoryCursor: String? = null,
         repositoryListe: List<GithubRepository> = emptyList()
     ): List<GithubRepository> {
-        val ghQuery = FetchGithubRepositoriesQuery(
-            variables = FetchGithubRepositoriesQuery.Variables(
-                orgName = "navikt",
-                repoEndCursor = repositoryCursor,
-            )
+        val response: GithubRepositoriesResponse = executeGraphQL(
+            query = fetchGithubRepositoriesQuery,
+            variables = mapOf("orgName" to "navikt", "repoEndCursor" to repositoryCursor)
         )
-        val response: GraphQLClientResponse<FetchGithubRepositoriesQuery.Result> = graphQlClient.execute(ghQuery)
+
         response.errors?.let {
             logger.error("Error fetching repository from GitHub: $it")
             throw RuntimeException("Error fetching repository from GitHub: $it")
         }
-        
-        // Check and handle rate limiting
+
         response.data?.rateLimit?.let { rateLimit ->
             rateLimitHandler.checkAndWait(
                 remaining = rateLimit.remaining,
@@ -48,26 +93,26 @@ open class GitHub(
             )
         }
 
-        val oppdatertRepositoryliste =
-            repositoryListe.plus(response.data?.organization?.repositories?.nodes?.mapNotNull {
-                if (it != null) GithubRepository(
-                    name = it.name,
-                    nameWithOwner = it.nameWithOwner,
-                    isArchived = it.isArchived,
-                    pushedAt = it.pushedAt,
-                    hasVulnerabilityAlertsEnabled = it.hasVulnerabilityAlertsEnabled,
-                    vulnerabilityAlerts = it.vulnerabilityAlerts?.totalCount ?: 0
-                ) else null
-            } ?: emptyList())
+        val updated = repositoryListe + (response.data?.organization?.repositories?.nodes?.map {
+            GithubRepository(
+                name = it.name,
+                nameWithOwner = it.nameWithOwner,
+                isArchived = it.isArchived,
+                pushedAt = it.pushedAt,
+                hasVulnerabilityAlertsEnabled = it.hasVulnerabilityAlertsEnabled,
+                vulnerabilityAlerts = it.vulnerabilityAlerts?.totalCount ?: 0
+            )
+        } ?: emptyList())
 
-        val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
-        val nextRepositoryPage = repositoryPageInfo?.endCursor.takeIf { repositoryPageInfo?.hasNextPage ?: false }
+        val pageInfo = response.data?.organization?.repositories?.pageInfo
+        val nextCursor = pageInfo?.endCursor.takeIf { pageInfo?.hasNextPage == true }
 
-        if (nextRepositoryPage != null) {
-            logger.info("Fetching next page of repositories with cursor: $nextRepositoryPage")
-            return fetchOrgRepositories(repositoryCursor = nextRepositoryPage, oppdatertRepositoryliste)
+        return if (nextCursor != null) {
+            logger.info("Fetching next page of repositories with cursor: $nextCursor")
+            fetchOrgRepositories(repositoryCursor = nextCursor, repositoryListe = updated)
+        } else {
+            updated
         }
-        return oppdatertRepositoryliste
     }
 
     open suspend fun fetchRepositoryVulnerabilities(
@@ -76,18 +121,18 @@ open class GitHub(
         vulnEndCursor: String? = null,
         vulnerabilitiesList: List<GithubRepoVulnerabilities> = emptyList()
     ): List<GithubRepoVulnerabilities> {
-        val ghQuery = FetchGithubVulnerabilitiesQuery(
-            variables = FetchGithubVulnerabilitiesQuery.Variables(
-                orgName = "navikt",
-                repoEndCursor = repoEndCursor,
-                repoStartCursor = repoStartCursor,
-                vulnEndCursor = vulnEndCursor
-            )
-        )
-
         logger.info("Fetching more vulnerabilities, vulnCount: ${vulnerabilitiesList.size}")
-        val response: GraphQLClientResponse<FetchGithubVulnerabilitiesQuery.Result> = try {
-            graphQlClient.execute(ghQuery)
+
+        val response: GithubVulnerabilitiesResponse = try {
+            executeGraphQL(
+                query = fetchGithubVulnerabilitiesQuery,
+                variables = mapOf(
+                    "orgName" to "navikt",
+                    "repoEndCursor" to repoEndCursor,
+                    "repoStartCursor" to repoStartCursor,
+                    "vulnEndCursor" to vulnEndCursor
+                )
+            )
         } catch (e: Exception) {
             logger.error("Exception during GraphQL execution for vulnerabilities. repoEndCursor=$repoEndCursor, vulnEndCursor=$vulnEndCursor", e)
             throw e
@@ -106,8 +151,7 @@ open class GitHub(
             logger.error("Error fetching vulnerabilities from GitHub (${errors.size} error(s)):$errorDetails")
             throw RuntimeException("Error fetching vulnerabilities from GitHub: ${errors.map { it.message }}")
         }
-        
-        // Check and handle rate limiting
+
         response.data?.rateLimit?.let { rateLimit ->
             rateLimitHandler.checkAndWait(
                 remaining = rateLimit.remaining,
@@ -118,45 +162,40 @@ open class GitHub(
         }
 
         val repositories = response.data?.organization?.repositories?.nodes?.mapNotNull { repo ->
-            repo?.let {
-                val vulnerabilities = it.vulnerabilityAlerts?.nodes?.mapNotNull { alert ->
-                    alert?.securityVulnerability?.let { secVuln ->
-                        GithubRepoVulnerabilities.GithubVulnerability(
-                            severity = secVuln.severity.name,
-                            identifier = alert.securityAdvisory?.identifiers?.map { identifier ->
-                                GithubRepoVulnerabilities.GithubVulnerability.GithubVulnerabilityIdentifier(
-                                    value = identifier.`value`,
-                                    type = identifier.type
-                                )
-                            } ?: emptyList(),
-                            dependencyScope = alert.dependencyScope?.name,
-                            dependabotUpdatePullRequestUrl = alert.dependabotUpdate?.pullRequest?.permalink,
-                            publishedAt = alert.securityAdvisory?.publishedAt,
-                            cvssScore = alert.securityAdvisory?.cvss?.score,
-                            summary = alert.securityAdvisory?.summary,
-                            packageEcosystem = secVuln.`package`.ecosystem.name,
-                            packageName = secVuln.`package`.name
-                        )
-                    }
-                } ?: emptyList()
-
-                if (vulnerabilities.isNotEmpty()) {
-                    GithubRepoVulnerabilities(
-                        repository = it.name,
-                        nameWithOwner = it.nameWithOwner,
-                        vulnerabilities = vulnerabilities
+            val vulnerabilities = repo.vulnerabilityAlerts?.nodes?.mapNotNull { alert ->
+                alert.securityVulnerability?.let { secVuln ->
+                    GithubRepoVulnerabilities.GithubVulnerability(
+                        severity = secVuln.severity,
+                        identifier = alert.securityAdvisory?.identifiers?.map { identifier ->
+                            GithubRepoVulnerabilities.GithubVulnerability.GithubVulnerabilityIdentifier(
+                                value = identifier.value,
+                                type = identifier.type
+                            )
+                        } ?: emptyList(),
+                        dependencyScope = alert.dependencyScope,
+                        dependabotUpdatePullRequestUrl = alert.dependabotUpdate?.pullRequest?.permalink,
+                        publishedAt = alert.securityAdvisory?.publishedAt,
+                        cvssScore = alert.securityAdvisory?.cvss?.score,
+                        summary = alert.securityAdvisory?.summary,
+                        packageEcosystem = secVuln.pkg.ecosystem,
+                        packageName = secVuln.pkg.name
                     )
-                } else {
-                    null // Skip repositories without vulnerabilities
                 }
-            }
+            } ?: emptyList()
+
+            if (vulnerabilities.isNotEmpty()) {
+                GithubRepoVulnerabilities(
+                    repository = repo.name,
+                    nameWithOwner = repo.nameWithOwner,
+                    vulnerabilities = vulnerabilities
+                )
+            } else null
         } ?: emptyList()
 
         val updatedVulnerabilitiesList = mergeGithubRepositories(vulnerabilitiesList, repositories)
 
-        // Check if any repository has more vulnerabilities to fetch
         val repoWithMoreVulns = response.data?.organization?.repositories?.nodes?.find { repo ->
-            repo?.vulnerabilityAlerts?.pageInfo?.hasNextPage == true
+            repo.vulnerabilityAlerts?.pageInfo?.hasNextPage == true
         }
 
         if (repoWithMoreVulns != null) {
@@ -169,14 +208,13 @@ open class GitHub(
             )
         }
 
-        // Check if there are more repositories to fetch
-        val repositoryPageInfo = response.data?.organization?.repositories?.pageInfo
-        val nextRepositoryPage = repositoryPageInfo?.endCursor.takeIf { repositoryPageInfo?.hasNextPage ?: false }
+        val repoPageInfo = response.data?.organization?.repositories?.pageInfo
+        val nextRepoPage = repoPageInfo?.endCursor.takeIf { repoPageInfo?.hasNextPage == true }
 
-        return if (nextRepositoryPage != null) {
-            logger.info("Fetching next page of repositories with cursor: $nextRepositoryPage")
+        return if (nextRepoPage != null) {
+            logger.info("Fetching next page of repositories with cursor: $nextRepoPage")
             fetchRepositoryVulnerabilities(
-                repoEndCursor = nextRepositoryPage,
+                repoEndCursor = nextRepoPage,
                 repoStartCursor = null,
                 vulnEndCursor = null,
                 vulnerabilitiesList = updatedVulnerabilitiesList
@@ -184,6 +222,26 @@ open class GitHub(
         } else {
             updatedVulnerabilitiesList
         }
+    }
+
+    private suspend inline fun <reified T> executeGraphQL(
+        query: String,
+        variables: Map<String, String?>
+    ): T {
+        val body = buildString {
+            append("""{"query":""")
+            append(json.encodeToString(query))
+            append(""","variables":{""")
+            variables.entries
+                .filter { it.value != null }
+                .joinTo(this, ",") { (k, v) -> """"$k":${json.encodeToString(v)}""" }
+            append("}}")
+        }
+        val responseText = httpClient.post(baseUrl) {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }.body<String>()
+        return json.decodeFromString(responseText)
     }
 
     private fun mergeGithubRepositories(
@@ -203,7 +261,7 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient,
     var errorCount = 0
     var successCount = 0
 
-    val result = chunked(100) // Process repositories in chunks of 100
+    val result = chunked(100)
         .flatMap { chunk ->
             chunk.map { repo ->
                 async(Dispatchers.IO) {
@@ -226,7 +284,6 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient,
                         }
                     } catch (e: Exception) {
                         errorCount++
-                        // Log with more context about the error type
                         when {
                             e.message?.contains("500") == true ->
                                 logger.warn("GitHub API server error (500) fetching teams for ${repo.name}")
@@ -240,7 +297,7 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient,
                 }
             }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
                 runBlocking { windowOfDeferred.awaitAll() }
-            }.flatten() // Flatten the results of each window
+            }.flatten()
         }
 
     if (errorCount > 0) {
@@ -290,5 +347,5 @@ data class GithubRepository(
 )
 
 typealias DateTime = String
-typealias ID = String // Needed for graphql shenanigans (?)
-typealias URI = String // Needed for graphql shenanigans (?)
+typealias ID = String
+typealias URI = String
