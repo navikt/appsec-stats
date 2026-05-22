@@ -18,7 +18,6 @@ kotlin {
 }
 
 dependencies {
-    implementation(libs.kotlin.stdlib)
     implementation(libs.bundles.ktor.client)
     implementation(libs.kotlinx.datetime)
 
@@ -30,9 +29,8 @@ dependencies {
 
     implementation(libs.google.cloud.bigquery)
 
-    implementation(platform(libs.junit.bom))
-    implementation(libs.bundles.testing)
-    testImplementation(libs.ktor.client.mock)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.bundles.testing)
 }
 
 tasks {
@@ -41,9 +39,5 @@ tasks {
         testLogging {
             showExceptions = true
         }
-    }
-
-    withType<Wrapper> {
-        gradleVersion = "9.3.0"
     }
 }
