@@ -5,9 +5,6 @@ on:
       - main
     paths-ignore:
       - "*.md"
-  workflow_run:
-    workflows: ['Dependabot auto-merge']
-    types: [completed]
 jobs:
   build:
     permissions:
@@ -62,6 +59,7 @@ jobs:
           image-ref: '${{ needs.build.outputs.image }}'
           format: 'sarif'
           output: 'trivy.sarif'
+          scanners: secret
       - uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4.35.4
         with:
           sarif_file: 'trivy.sarif'
