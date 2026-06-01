@@ -13,34 +13,57 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import java.io.StringReader
 import java.security.interfaces.RSAPrivateKey
 import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.*
+
+interface GitHubTokenProvider {
+    suspend fun getInstallationToken(): String
+}
 
 class GitHubAppAuth(
     private val appId: String,
     private val privateKeyContent: String,
     private val installationId: String,
-    private val httpClient: HttpClient
-) {
+    private val httpClient: HttpClient,
+) : GitHubTokenProvider {
     private val privateKey: RSAPrivateKey = loadPrivateKey(privateKeyContent)
+    private var cachedToken: String? = null
+    private var tokenExpiresAt: Instant = Instant.MIN
 
-    suspend fun getInstallationToken(): String {
-        val jwt = JWT.create()
-            .withIssuer(appId)
-            .withIssuedAt(Date.from(Instant.now().minusSeconds(60)))
-            .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
-            .sign(Algorithm.RSA256(null, privateKey))
+    override suspend fun getInstallationToken(): String {
+        if (cachedToken != null && Instant.now().isBefore(tokenExpiresAt.minusSeconds(300))) {
+            return cachedToken!!
+        }
 
-        val response = httpClient.post("https://api.github.com/app/installations/$installationId/access_tokens") {
-            headers {
-                append(HttpHeaders.Accept, "application/vnd.github+json")
-                append(HttpHeaders.Authorization, "Bearer $jwt")
-                append("X-GitHub-Api-Version", "2022-11-28")
-            }
-        }.body<InstallationTokenResponse>()
+        val jwt =
+            JWT
+                .create()
+                .withIssuer(appId)
+                .withIssuedAt(Date.from(Instant.now().minusSeconds(60)))
+                .withExpiresAt(Date.from(Instant.now().plusSeconds(600)))
+                .sign(Algorithm.RSA256(null, privateKey))
 
-        logger.info("Fetched installation token for GitHub App with ID $appId and installation ID $installationId, expires at: (${response.expires_at})")
+        val response =
+            httpClient
+                .post("https://api.github.com/app/installations/$installationId/access_tokens") {
+                    headers {
+                        append(HttpHeaders.Accept, "application/vnd.github+json")
+                        append(HttpHeaders.Authorization, "Bearer $jwt")
+                        append("X-GitHub-Api-Version", "2026-03-10")
+                    }
+                }
+        if (!response.status.isSuccess()) {
+            throw IllegalStateException("Failed to fetch GitHub App installation token: HTTP ${response.status.value}")
+        }
+        val tokenResponse = response.body<InstallationTokenResponse>()
 
-        return response.token
+        cachedToken = tokenResponse.token
+        tokenExpiresAt = Instant.from(DateTimeFormatter.ISO_DATE_TIME.parse(tokenResponse.expires_at))
+        logger.info(
+            "Fetched installation token for GitHub App with ID $appId and installation ID $installationId, expires at: (${tokenResponse.expires_at})",
+        )
+
+        return tokenResponse.token
     }
 
     private fun loadPrivateKey(pemContent: String): RSAPrivateKey {
@@ -50,6 +73,8 @@ class GitHubAppAuth(
     }
 
     @Serializable
-    private data class InstallationTokenResponse(val token: String, val expires_at: String)
+    private data class InstallationTokenResponse(
+        val token: String,
+        val expires_at: String,
+    )
 }
-
