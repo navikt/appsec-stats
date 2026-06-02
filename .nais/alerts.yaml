@@ -1,23 +1,100 @@
+---
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: appsec-naisjob-failed
+  name: appsec-alerts
   namespace: appsec
   labels:
     team: appsec
 spec:
   groups:
-    - name: appsec
+    - name: application-alerts
       rules:
-        - alert: NaisjobFailed
-          expr: kube_job_failed{namespace="appsec", condition="true"} > 0
+        - alert: InstanceDown
+          expr: >-
+            avg_over_time(
+              kube_deployment_status_replicas_available{namespace="appsec"}[5m]
+            ) < 1
           for: 1m
           annotations:
-            summary: "A Naisjob in the appsec namespace has failed"
-            message: "Naisjob `{{ $labels.job_name }}` has a failed run."
-            consequence: "Scheduled data processing may be incomplete or missing."
-            action: "Check the logs in Grafana for the failing job and look for errors or exceptions."
-            dashboard_url: "https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger?var-app={{ $labels.job_name }}&var-namespace=appsec"
+            consequence: '*{{ $labels.deployment }}* is down'
+            action: '`kubectl describe pod -l app={{ $labels.deployment}}` -> `kubectl logs -l app={{ $labels.deployment}}`'
+          labels:
+            namespace: appsec
+            severity: critical
+
+        - alert: LogsErrorRate
+          expr: >-
+            100 * sum by (app, namespace) (
+                avg_over_time(rate(log_messages_errors{level="Error", namespace="appsec"}[5m])[10m:])
+            )
+            /
+            sum by (app, namespace) (
+                avg_over_time(rate(log_messages_total{namespace="appsec"}[5m])[10m:])
+            )
+            > 5
+          for: 5m
+          annotations:
+            consequence: '*{{ $labels.app }}* is logging more than 5% errors'
+            action: '`kubectl logs -l app={{ $labels.app}}`'
           labels:
             namespace: appsec
             severity: warning
+
+        - alert: CrashLoopBackoff
+          expr: >-
+            sum(
+              changes(
+                kube_pod_container_status_restarts_total{namespace="appsec"}[5m]
+              )
+            ) by (container, namespace) > 0
+          for: 5m
+          annotations:
+            consequence: '*{{ $labels.container }}* is in CrashLoopBackoff'
+            action: 'Investigate why the application is crashing'
+          labels:
+            namespace: appsec
+            severity: warning
+
+        - alert: OOMKilled
+          expr: >-
+            (
+              kube_pod_container_status_last_terminated_reason{
+                namespace="appsec",
+                reason="OOMKilled"
+              } == 1
+            )
+            and on (namespace, pod, container)
+            (
+              increase(
+                kube_pod_container_status_restarts_total{namespace="appsec"}[5m]
+              ) > 0
+            )
+          for: 1m
+          annotations:
+            consequence: 'Application *{{ $labels.container }}* was OOMKilled by Kubernetes. Pod: {{ $labels.pod }}'
+            action: 'Investigate the cause.'
+          labels:
+            namespace: appsec
+            severity: warning
+
+        - alert: ConsumerLag
+          expr: sum(kafka_consumergroup_group_lag{group=~"^tpt-.*"}) by (group, topic) > 100
+          for: 15m
+          annotations:
+            consequence: 'Consumer *{{ $labels.group }}* has high lag on Kafka topic *{{ $labels.topic }}*'
+            action: 'Investigate why the application is not keeping up with Kafka.'
+          labels:
+            namespace: appsec
+            severity: warning
+    - name: naisjob-alerts
+      rules:
+        - alert: NaisjobDown
+          expr: kube_job_failed{namespace="appsec"} > 0
+          for: 2m
+          annotations:
+            summary: NaisJob failing in namespace appsec.
+            action: "`Find the failing job in Nais Console or Grafana (https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger)`"
+          labels:
+            namespace: appsec
+            severity: critical
