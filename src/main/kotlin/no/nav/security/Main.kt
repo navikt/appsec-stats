@@ -179,8 +179,12 @@ internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
         repositoriesWithAdmins.map { repo ->
             BQRepoStat(
                 // Add owners from naisTeams AND github repository admins
-                owners = (naisTeams.filter { it.repositories.contains(repo.name) }
-                    .map { it.naisTeam } + repo.adminTeams).distinct(),
+                owners =
+                    (
+                        naisTeams
+                            .filter { it.repositories.contains(repo.name) }
+                            .map { it.naisTeam } + repo.adminTeams
+                    ).distinct(),
                 repositoryName = repo.name,
                 vulnerabilityAlertsEnabled = repo.hasVulnerabilityAlertsEnabled,
                 vulnerabilityCount = repo.vulnerabilityAlerts,
@@ -276,9 +280,6 @@ internal fun httpClient(
     val client =
         HttpClient(CIO) {
             expectSuccess = false
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120000
-            }
             install(HttpRequestRetry) {
                 retryOnServerErrors(maxRetries = 3)
                 retryOnException(maxRetries = 3, retryOnTimeout = true)
@@ -299,8 +300,8 @@ internal fun httpClient(
                         val retryAfter = response.headers["retry-after"]
                         logger.warn(
                             "REST API rate limit detected: status=${response.status.value}, " +
-                                    "remaining=$remaining, limit=$limit, reset=$reset, retry-after=$retryAfter, " +
-                                    "url=${request.url}",
+                                "remaining=$remaining, limit=$limit, reset=$reset, retry-after=$retryAfter, " +
+                                "url=${request.url}",
                         )
                     }
 
@@ -347,6 +348,9 @@ internal fun httpClient(
                         }
                     }
                 }
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 120000
             }
             install(ContentNegotiation) {
                 json(
