@@ -10,7 +10,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.http.headers
-import kotlinx.coroutines.*
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import no.nav.security.dto.GithubRepositoriesResponse
@@ -294,60 +294,42 @@ open class GitHub(
     }
 }
 
-suspend fun List<GithubRepository>.fetchRepositoryAdmins(
-    httpClient: HttpClient,
-    concurrencyLevel: Int = 10,
-): List<GithubRepository> =
-    coroutineScope {
-        var errorCount = 0
-        var successCount = 0
+suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient): List<GithubRepository> {
+    var errorCount = 0
+    var successCount = 0
 
-        val result =
-            chunked(100)
-                .flatMap { chunk ->
-                    chunk
-                        .map { repo ->
-                            async(Dispatchers.IO) {
-                                try {
-                                    val response =
-                                        httpClient
-                                            .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
-                                                headers {
-                                                    append(HttpHeaders.Accept, "application/vnd.github+json")
-                                                    append("X-GitHub-Api-Version", "2026-03-10")
-                                                }
-                                            }
-                                    if (!response.status.isSuccess()) {
-                                        throw IllegalStateException(
-                                            "GitHub API error ${response.status.value} fetching teams for ${repo.name}",
-                                        )
-                                    }
-                                    val teams: List<Team> = response.body()
-                                    val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
-
-                                    successCount++
-                                    if (adminTeams.isNotEmpty()) {
-                                        repo.copy(adminTeams = adminTeams)
-                                    } else {
-                                        repo
-                                    }
-                                } catch (e: Exception) {
-                                    errorCount++
-                                    logger.warn("Error fetching teams for ${repo.name}: ${e.message}")
-                                    repo
-                                }
+    val result =
+        map { repo ->
+            try {
+                val response =
+                    httpClient
+                        .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
+                            headers {
+                                append(HttpHeaders.Accept, "application/vnd.github+json")
+                                append("X-GitHub-Api-Version", "2026-03-10")
                             }
-                        }.windowed(concurrencyLevel, concurrencyLevel, true) { windowOfDeferred ->
-                            runBlocking { windowOfDeferred.awaitAll() }
-                        }.flatten()
+                        }
+                if (!response.status.isSuccess()) {
+                    throw IllegalStateException("GitHub API error ${response.status.value} fetching teams for ${repo.name}")
                 }
+                val teams: List<Team> = response.body()
+                val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
 
-        if (errorCount > 0) {
-            logger.info("Fetched admin teams: $successCount successful, $errorCount failed")
+                successCount++
+                if (adminTeams.isNotEmpty()) repo.copy(adminTeams = adminTeams) else repo
+            } catch (e: Exception) {
+                errorCount++
+                logger.warn("Error fetching teams for ${repo.name}: ${e.message}")
+                repo
+            }
         }
 
-        result
+    if (errorCount > 0) {
+        logger.info("Fetched admin teams: $successCount successful, $errorCount failed")
     }
+
+    return result
+}
 
 @Serializable
 data class Team(
