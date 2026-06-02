@@ -60,7 +60,7 @@ class GitHubAppAuth(
                         headers {
                             append(HttpHeaders.Accept, "application/vnd.github+json")
                             append(HttpHeaders.Authorization, "Bearer $jwt")
-                            append("X-GitHub-Api-Version", "2026-03-10")
+                            append("X-GitHub-Api-Version", "2022-11-28")
                         }
                     }
             if (!response.status.isSuccess()) {
