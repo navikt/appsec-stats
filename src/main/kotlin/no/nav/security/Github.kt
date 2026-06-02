@@ -307,7 +307,7 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient)
                         .get("https://api.github.com/repos/navikt/${repo.name}/teams") {
                             headers {
                                 append(HttpHeaders.Accept, "application/vnd.github+json")
-                                append("X-GitHub-Api-Version", "2022-11-28")
+                                append("X-GitHub-Api-Version", "2026-03-10")
                             }
                         }
                 if (!response.status.isSuccess()) {

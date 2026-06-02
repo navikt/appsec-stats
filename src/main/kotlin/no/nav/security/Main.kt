@@ -63,7 +63,7 @@ suspend fun createProductionDependencies(): AppDependencies {
             appId = requiredFromEnv("GITHUB_APP_ID"),
             privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
             installationId = requiredFromEnv("GITHUB_APP_INSTALLATION_ID"),
-            httpClient = httpClient(authToken = null),
+            httpClient = authHttpClient(),
         )
     val githubHttpClient = httpClient(tokenProvider = appAuth)
 
@@ -272,6 +272,14 @@ fun newestDeployment(
         .filter { it.platform.isNotBlank() }
         .filter { it.application == repo.repositoryName }
         .maxByOrNull { it.latestDeploy }
+
+internal fun authHttpClient(): HttpClient =
+    HttpClient(CIO) {
+        expectSuccess = false
+        install(HttpTimeout) {
+            requestTimeoutMillis = 10000
+        }
+    }
 
 internal fun httpClient(
     authToken: String? = null,
