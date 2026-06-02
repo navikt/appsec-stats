@@ -64,6 +64,7 @@ class GitHubAppAuth(
                         }
                     }
             if (!response.status.isSuccess()) {
+                logger.warn("Failed to fetch GitHub App installation token: HTTP ${response.status.value}")
                 throw IllegalStateException("Failed to fetch GitHub App installation token: HTTP ${response.status.value}")
             }
             val tokenResponse = response.body<InstallationTokenResponse>()

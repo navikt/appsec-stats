@@ -471,6 +471,7 @@ open class NaisApi(
                 setBody(body)
             }
         if (!response.status.isSuccess()) {
+            logger.warn("NAIS GraphQL API error: HTTP ${response.status.value} for url=$baseUrl")
             throw IllegalStateException("NAIS GraphQL API error: HTTP ${response.status.value}")
         }
         return naisJson.decodeFromString(response.body())

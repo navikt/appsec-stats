@@ -276,6 +276,7 @@ open class GitHub(
                     setBody(body)
                 }
         if (!response.status.isSuccess()) {
+            logger.warn("GitHub GraphQL API error: HTTP ${response.status.value} for url=$baseUrl")
             throw IllegalStateException("GitHub GraphQL API error: HTTP ${response.status.value}")
         }
         return json.decodeFromString(response.body())
@@ -310,6 +311,7 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient)
                             }
                         }
                 if (!response.status.isSuccess()) {
+                    logger.warn("GitHub API error: HTTP ${response.status.value} fetching teams for ${repo.name}")
                     throw IllegalStateException("GitHub API error ${response.status.value} fetching teams for ${repo.name}")
                 }
                 val teams: List<Team> = response.body()
