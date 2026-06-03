@@ -13,9 +13,9 @@ spec:
         - alert: InstanceDown
           expr: >-
             avg_over_time(
-              kube_deployment_status_replicas_available{namespace="appsec"}[5m]
+              kube_deployment_status_replicas_available{namespace="appsec"}[15m]
             ) < 1
-          for: 1m
+          for: 5m
           annotations:
             consequence: '*{{ $labels.deployment }}* is down'
             action: '`kubectl describe pod -l app={{ $labels.deployment}}` -> `kubectl logs -l app={{ $labels.deployment}}`'
