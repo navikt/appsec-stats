@@ -279,6 +279,15 @@ internal fun authHttpClient(): HttpClient =
         install(HttpTimeout) {
             requestTimeoutMillis = 10000
         }
+        install(ContentNegotiation) {
+            json(
+                json =
+                    Json {
+                        explicitNulls = false
+                        ignoreUnknownKeys = true
+                    },
+            )
+        }
     }
 
 internal fun httpClient(
