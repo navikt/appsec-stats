@@ -301,6 +301,9 @@ internal fun httpClient(
                 retryOnServerErrors(maxRetries = 3)
                 retryOnException(maxRetries = 3, retryOnTimeout = true)
                 exponentialDelay(base = 2.0, maxDelayMs = 30000)
+                modifyRequest { request ->
+                    logger.warn("Retrying request (attempt $retryCount): ${request.url}")
+                }
 
                 // GitHub-specific retry condition
                 // https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
@@ -367,7 +370,7 @@ internal fun httpClient(
                 }
             }
             install(HttpTimeout) {
-                requestTimeoutMillis = 120000
+                requestTimeoutMillis = 10000
             }
             install(ContentNegotiation) {
                 json(

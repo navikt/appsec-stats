@@ -300,7 +300,8 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient)
     var successCount = 0
 
     val result =
-        map { repo ->
+        mapIndexed { index, repo ->
+            if (index % 100 == 0) logger.info("Fetching admin teams: $index/$size repositories processed")
             try {
                 val response =
                     httpClient
@@ -312,13 +313,14 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient)
                         }
                 if (!response.status.isSuccess()) {
                     logger.warn("GitHub API error: HTTP ${response.status.value} fetching teams for ${repo.name}")
-                    throw IllegalStateException("GitHub API error ${response.status.value} fetching teams for ${repo.name}")
+                    errorCount++
+                    repo
+                } else {
+                    val teams: List<Team> = response.body()
+                    val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
+                    successCount++
+                    if (adminTeams.isNotEmpty()) repo.copy(adminTeams = adminTeams) else repo
                 }
-                val teams: List<Team> = response.body()
-                val adminTeams = teams.filter { it.permission == "admin" }.map { it.name }.toSet()
-
-                successCount++
-                if (adminTeams.isNotEmpty()) repo.copy(adminTeams = adminTeams) else repo
             } catch (e: Exception) {
                 errorCount++
                 logger.warn("Error fetching teams for ${repo.name}: ${e.message}")
@@ -326,10 +328,7 @@ suspend fun List<GithubRepository>.fetchRepositoryAdmins(httpClient: HttpClient)
             }
         }
 
-    if (errorCount > 0) {
-        logger.info("Fetched admin teams: $successCount successful, $errorCount failed")
-    }
-
+    logger.info("Fetched admin teams: $successCount successful, $errorCount failed")
     return result
 }
 
