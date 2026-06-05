@@ -11,11 +11,8 @@ spec:
     - name: application-alerts
       rules:
         - alert: InstanceDown
-          expr: >-
-            avg_over_time(
-              kube_deployment_status_replicas_available{namespace="appsec"}[15m]
-            ) < 1
-          for: 5m
+          expr: kube_deployment_status_replicas_available{namespace="appsec"} < 1
+          for: 15m
           annotations:
             consequence: '*{{ $labels.deployment }}* is down'
             action: '`kubectl describe pod -l app={{ $labels.deployment}}` -> `kubectl logs -l app={{ $labels.deployment}}`'
@@ -93,8 +90,8 @@ spec:
           expr: kube_job_failed{namespace="appsec"} > 0
           for: 2m
           annotations:
-            summary: NaisJob failing in namespace appsec.
-            action: "`Find the failing job in Nais Console or Grafana (https://grafana.nav.cloud.nais.io/d/ce5pol7gb1yioc/logger)`"
+            summary: 'NaisJob ({{ $labels.job_name }}) failing in namespace appsec.'
+            action: "`Find the failing job in Nais Console or Grafana (https://grafana.nav.cloud.nais.io/goto/bfo7a7pyeodfkd?orgId=1)`"
           labels:
             namespace: appsec
             severity: critical
