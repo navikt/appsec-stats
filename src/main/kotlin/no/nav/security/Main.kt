@@ -10,6 +10,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.http.HttpHeaders.UserAgent
 import io.ktor.serialization.kotlinx.json.*
+import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
@@ -67,10 +68,12 @@ suspend fun createProductionDependencies(): AppDependencies {
         )
     val githubHttpClient = httpClient(tokenProvider = appAuth)
 
+    val naisTokenFileLocation = requiredFromEnv("NAIS_SERVICE_ACCOUNT_TOKEN_PATH")
+    val naisToken = File(naisTokenFileLocation).readText(Charsets.UTF_8)
     return AppDependencies(
         github = GitHub(httpClient = githubHttpClient),
         githubHttpClient = githubHttpClient,
-        naisApi = NaisApi(httpClient = httpClient(requiredFromEnv("NAIS_API_TOKEN"))),
+        naisApi = NaisApi(httpClient = httpClient(naisToken)),
         teamcatalog = Teamcatalog(httpClient = httpClient(null)),
         bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID")),
         bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
