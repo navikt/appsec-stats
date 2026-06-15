@@ -1,16 +1,21 @@
 package no.nav.security
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpSend
-import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.plugin
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.request.header
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpHeaders.UserAgent
-import io.ktor.serialization.kotlinx.json.*
-import java.io.File
+import io.ktor.serialization.kotlinx.json.json
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import no.nav.security.bigquery.BQNaisTeam
@@ -25,9 +30,6 @@ import no.nav.security.kafka.KafkaConfig
 import no.nav.security.kafka.KafkaProducer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
 
 val logger: Logger = LoggerFactory.getLogger("appsec-stats")
 
@@ -59,21 +61,19 @@ fun main(args: Array<String>): Unit =
     }
 
 suspend fun createProductionDependencies(): AppDependencies {
-    val appAuth =
+    val gitHubAuth =
         GitHubAppAuth(
             appId = requiredFromEnv("GITHUB_APP_ID"),
             privateKeyContent = requiredFromEnv("GITHUB_APP_PRIVATE_KEY").replace("\\n", "\n"),
             installationId = requiredFromEnv("GITHUB_APP_INSTALLATION_ID"),
             httpClient = authHttpClient(),
         )
-    val githubHttpClient = httpClient(tokenProvider = appAuth)
+    val githubHttpClient = httpClient(gitHubtokenProvider = gitHubAuth)
 
-    val naisTokenFileLocation = requiredFromEnv("NAIS_SERVICE_ACCOUNT_TOKEN_PATH")
-    val naisToken = File(naisTokenFileLocation).readText(Charsets.UTF_8)
     return AppDependencies(
         github = GitHub(httpClient = githubHttpClient),
         githubHttpClient = githubHttpClient,
-        naisApi = NaisApi(httpClient = httpClient(naisToken)),
+        naisApi = NaisApi(httpClient = httpClient(), requiredFromEnv("NAIS_SERVICE_ACCOUNT_TOKEN_PATH")),
         teamcatalog = Teamcatalog(httpClient = httpClient(null)),
         bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID")),
         bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
@@ -294,8 +294,7 @@ internal fun authHttpClient(): HttpClient =
     }
 
 internal fun httpClient(
-    authToken: String? = null,
-    tokenProvider: GitHubTokenProvider? = null,
+    gitHubtokenProvider: GitHubTokenProvider? = null,
 ): HttpClient {
     val client =
         HttpClient(CIO) {
@@ -388,15 +387,14 @@ internal fun httpClient(
                 headers {
                     header(HttpHeaders.Accept, ContentType.Application.Json)
                     header(HttpHeaders.ContentType, ContentType.Application.Json)
-                    authToken?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                     header(UserAgent, "appsec-stats")
                 }
             }
         }
-    if (tokenProvider != null) {
+    if (gitHubtokenProvider != null) {
         client.plugin(HttpSend).intercept { request ->
             request.headers.remove(HttpHeaders.Authorization)
-            request.headers.append(HttpHeaders.Authorization, "Bearer ${tokenProvider.getInstallationToken()}")
+            request.headers.append(HttpHeaders.Authorization, "Bearer ${gitHubtokenProvider.getInstallationToken()}")
             execute(request)
         }
     }

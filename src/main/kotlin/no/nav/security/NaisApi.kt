@@ -3,11 +3,13 @@ package no.nav.security
 import io.ktor.client.*
 import io.ktor.client.call.body
 import io.ktor.client.plugins.*
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.*
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import no.nav.security.dto.NaisDeploymentApplication
@@ -107,6 +109,7 @@ private val repoVulnerabilityQuery =
 
 open class NaisApi(
     private val httpClient: HttpClient,
+    private val pathToToken: String? = null,
 ) {
     private val baseUrl = "https://console.nav.cloud.nais.io/graphql"
 
@@ -468,6 +471,7 @@ open class NaisApi(
         val response =
             httpClient.post(baseUrl) {
                 contentType(ContentType.Application.Json)
+                bearerAuth(readAuthToken())
                 setBody(body)
             }
         if (!response.status.isSuccess()) {
@@ -476,6 +480,10 @@ open class NaisApi(
         }
         return naisJson.decodeFromString(response.body())
     }
+
+    private fun readAuthToken() = pathToToken?.let {
+        File(it).readText(Charsets.UTF_8)
+    } ?: "not for real"
 }
 
 data class NaisDeployment(
