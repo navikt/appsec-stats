@@ -25,7 +25,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
       - name: Test & build
         run: ./gradlew test installDist
-      - uses: nais/docker-build-push@f8bc7437f7549c2b08197152d781b98f8727a08a # v0
+      - uses: nais/docker-build-push@31c3a7321909bcb20799fdf46153fec721fd9512 # v0
         id: docker-push
         with:
           team: appsec
@@ -33,7 +33,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
-      - uses: nais/deploy/actions/deploy@5fdd91aaf69bb0d6dd5e5118cdacb639f487b93b # v2
+      - uses: nais/deploy/actions/deploy@2d18f050f07b6a007864c6a57070ed915d571beb # v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
