@@ -1,14 +1,14 @@
 [versions]
 kotlin = "2.4.0"
 ktor = "3.5.1"
-logback = "1.5.37"
+logback = "1.5.38"
 logstash-encoder = "9.0"
-bigquery = "2.67.0"
+bigquery = "2.68.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
-jwt = "4.5.2"
-bouncy-castle = "1.84"
+jwt = "4.6.0"
+bouncy-castle = "1.85"
 kafka = "4.3.1"
-junit = "6.1.1"
+junit = "6.1.2"
 
 [libraries]
 ktor-client-cio = { module = "io.ktor:ktor-client-cio-jvm", version.ref = "ktor" }
