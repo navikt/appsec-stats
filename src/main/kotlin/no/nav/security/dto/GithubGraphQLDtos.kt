@@ -2,6 +2,7 @@ package no.nav.security.dto
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class GithubRepositoriesResponse(
@@ -149,9 +150,9 @@ data class PageInfoWithStart(
 @Serializable
 data class GraphQLError(
     val message: String,
-    val path: List<String>? = null,
+    val path: List<JsonElement>? = null,
     val locations: List<GraphQLErrorLocation>? = null,
-    val extensions: Map<String, String>? = null
+    val extensions: Map<String, JsonElement>? = null
 )
 
 @Serializable
