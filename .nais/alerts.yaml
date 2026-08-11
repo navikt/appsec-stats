@@ -76,7 +76,7 @@ spec:
             severity: warning
 
         - alert: ConsumerLag
-          expr: sum(kafka_consumergroup_group_lag{group=~"^tpt-.*"}) by (group, topic) > 100
+          expr: sum(kafka_consumergroup_group_lag{group=~"^tpt-.*",group!~".*-sse-sync-.*"}) by (group, topic) > 100
           for: 15m
           annotations:
             consequence: 'Consumer *{{ $labels.group }}* has high lag on Kafka topic *{{ $labels.topic }}*'
