@@ -21,8 +21,6 @@ dependencies {
     implementation(libs.bundles.ktor.client)
     implementation(libs.kotlinx.datetime)
 
-    implementation(libs.kafka.clients)
-
     implementation(libs.bundles.github.auth)
 
     implementation(libs.bundles.logging)

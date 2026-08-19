@@ -25,9 +25,6 @@ import no.nav.security.bigquery.BigQueryTeams
 import no.nav.security.bigquery.BigQueryVulnerabilities
 import no.nav.security.bigquery.BqDeploymentDto
 import no.nav.security.bigquery.toBigQueryFormat
-import no.nav.security.kafka.GithubRepoStats
-import no.nav.security.kafka.KafkaConfig
-import no.nav.security.kafka.KafkaProducer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -41,7 +38,6 @@ data class AppDependencies(
     val bqRepo: BigQueryRepos,
     val bqTeam: BigQueryTeams,
     val bqVulnerabilities: BigQueryVulnerabilities,
-    val kafkaProducer: KafkaProducer,
 )
 
 fun main(args: Array<String>): Unit =
@@ -78,10 +74,6 @@ suspend fun createProductionDependencies(): AppDependencies {
         bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID")),
         bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
         bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
-        kafkaProducer =
-            KafkaProducer(
-                KafkaConfig.fromEnvironment() ?: throw RuntimeException("Kafka configuration missing in environment"),
-            ),
     )
 }
 
@@ -89,7 +81,6 @@ internal suspend fun fetchVulnerabilities(deps: AppDependencies) {
     val github = deps.github
     val naisApi = deps.naisApi
     val bqVulnerabilities = deps.bqVulnerabilities
-    val kafkaProducer = deps.kafkaProducer
 
     logger.info("Fetching vulnerability data from Nais API...")
     val naisRepositories =
@@ -122,34 +113,6 @@ internal suspend fun fetchVulnerabilities(deps: AppDependencies) {
     val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
     logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
 
-    for (repo in githubVulns) {
-        val message =
-            GithubRepoStats(
-                repositoryName = repo.nameWithOwner,
-                vulnerabilities =
-                    repo.vulnerabilities.map { vuln ->
-                        GithubRepoStats.VulnerabilityInfo(
-                            severity = vuln.severity,
-                            identifiers =
-                                vuln.identifier.map { id ->
-                                    GithubRepoStats.VulnerabilityIdentifier(
-                                        value = id.value,
-                                        type = id.type,
-                                    )
-                                },
-                            dependencyScope = vuln.dependencyScope,
-                            dependabotUpdatePullRequestUrl = vuln.dependabotUpdatePullRequestUrl,
-                            publishedAt = vuln.publishedAt,
-                            cvssScore = vuln.cvssScore,
-                            summary = vuln.summary,
-                            packageEcosystem = vuln.packageEcosystem,
-                            packageName = vuln.packageName,
-                        )
-                    },
-            ).toJson()
-        kafkaProducer.produce(message = message)
-    }
-
     bqVulnerabilities.insert(allVulnerabilities).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
         { ex -> throw ex },
@@ -164,7 +127,6 @@ internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
     val teamcatalog = deps.teamcatalog
     val bqRepo = deps.bqRepo
     val bqTeam = deps.bqTeam
-    val kafkaProducer = deps.kafkaProducer
 
     logger.info("Looking for GitHub repos...")
     val githubRepositories = github.fetchOrgRepositories()
@@ -239,15 +201,6 @@ internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
         { ex -> throw ex },
     )
-
-    for (repo in githubRepositories) {
-        val message =
-            GithubRepoStats(
-                repositoryName = repo.nameWithOwner,
-                naisTeams = repositoriesWithOwners.find { it.repositoryName == repo.name }?.owners ?: emptyList(),
-            ).toJson()
-        kafkaProducer.produce(message = message)
-    }
 
     val bqNaisTeams =
         naisTeams.map {
