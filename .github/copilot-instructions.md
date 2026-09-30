@@ -3,7 +3,6 @@
 ## Tech Stack
 - Kotlin
 - Ktor (HTTP client, GraphQL)
-- Kafka (message producer)
 - BigQuery (data warehouse)
 - JUnit 5 (testing)
 - kotlinx.serialization (JSON)
@@ -26,7 +25,7 @@
 
 ## Testing Strategy
 - **Unit tests**: Test individual components and data transformations
-- **Integration tests**: Mock external APIs (GitHub, NAIS), verify end-to-end data format in Kafka/BigQuery
+- **Integration tests**: Mock external APIs (GitHub, NAIS), verify end-to-end data format in BigQuery
 - **Purpose**: Catch breaking changes in data pipelines before production
 
 ## Key Patterns
@@ -40,9 +39,7 @@
 When modifying data flow:
 1. Update unit tests for changed mappings
 2. Update integration tests with realistic API responses
-3. Verify Kafka message format matches expectations
-4. Verify BigQuery payload format matches schema
+3. Verify BigQuery payload format matches schema
 
 ## Repository Name Handling
 - **BigQuery**: Store `name` only (e.g., "appsec-stats")
-- **Kafka**: Store `nameWithOwner` (e.g., "navikt/appsec-stats")

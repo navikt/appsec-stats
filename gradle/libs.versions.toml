@@ -7,7 +7,6 @@ bigquery = "2.68.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
 jwt = "4.6.0"
 bouncy-castle = "1.85"
-kafka = "4.3.1"
 junit = "6.1.2"
 
 [libraries]
@@ -17,8 +16,6 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
-
-kafka-clients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
 
 auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "jwt" }
 bouncy-castle-bcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncy-castle" }
