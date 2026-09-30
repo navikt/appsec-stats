@@ -75,15 +75,6 @@ spec:
             namespace: appsec
             severity: warning
 
-        - alert: ConsumerLag
-          expr: sum(kafka_consumergroup_group_lag{group=~"^tpt-.*",group!~".*-sse-sync-.*"}) by (group, topic) > 100
-          for: 15m
-          annotations:
-            consequence: 'Consumer *{{ $labels.group }}* has high lag on Kafka topic *{{ $labels.topic }}*'
-            action: 'Investigate why the application is not keeping up with Kafka.'
-          labels:
-            namespace: appsec
-            severity: warning
     - name: naisjob-alerts
       rules:
         - alert: NaisjobDown
