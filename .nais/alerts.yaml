@@ -78,7 +78,10 @@ spec:
     - name: naisjob-alerts
       rules:
         - alert: NaisjobDown
-          expr: kube_job_failed{namespace="appsec"} > 0
+          expr: >-
+            kube_job_failed{namespace="appsec"} > 0
+            unless on (namespace, job_name)
+            kube_job_failed{namespace="appsec"} offset 10m > 0
           for: 2m
           annotations:
             summary: 'NaisJob ({{ $labels.job_name }}) failing in namespace appsec.'
