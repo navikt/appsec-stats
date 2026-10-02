@@ -25,7 +25,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - name: Test & build
         run: ./gradlew test installDist
-      - uses: nais/docker-build-push@0e73849f69ff260ee27597553c0a7848ca4e9795 # v0
+      - uses: nais/docker-build-push@423a915c9b72edf2ba848b88171ccb0489e2a40a # v0
         id: docker-push
         with:
           team: appsec
@@ -33,7 +33,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # v2
+      - uses: nais/deploy/actions/deploy@1de80da70ad26556ecdc5964a8b7ec3bbed98120 # v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
@@ -60,7 +60,7 @@ jobs:
           format: 'sarif'
           output: 'trivy.sarif'
           scanners: secret
-      - uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
