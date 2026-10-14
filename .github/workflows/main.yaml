@@ -15,25 +15,25 @@ jobs:
     outputs:
       image: ${{ steps.docker-push.outputs.image }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+      - uses: actions/setup-java@v6.0.1
         with:
           java-version: 25
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - uses: gradle/actions/setup-gradle@v6.4.0
       - name: Test & build
         run: ./gradlew test installDist
-      - uses: nais/docker-build-push@423a915c9b72edf2ba848b88171ccb0489e2a40a # v0
+      - uses: nais/docker-build-push@main
         id: docker-push
         with:
           team: appsec
           push_image: true
           pull: true
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
-      - uses: nais/deploy/actions/deploy@7ad7c2b833e1db74a80954e3ee6bb6ac060a8ae7 # v2
+        uses: gradle/actions/dependency-submission@v6.4.0
+      - uses: nais/deploy/actions/deploy@v2
         env:
           RESOURCE: .nais/nais.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
@@ -46,13 +46,13 @@ jobs:
       security-events: write # push sarif to github security
       id-token: write # for nais/login
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: nais/login@40b72a35a18ddf2ad74b632461139ab838cc2a2f # v0
+      - uses: nais/login@v0
         with:
           team: appsec
-      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         env:
           TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db
         with:
@@ -60,7 +60,7 @@ jobs:
           format: 'sarif'
           output: 'trivy.sarif'
           scanners: secret
-      - uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+      - uses: github/codeql-action/upload-sarif@v4.38.2
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
