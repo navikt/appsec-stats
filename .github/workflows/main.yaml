@@ -33,7 +33,7 @@ jobs:
           pull: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@v6.4.0
-      - uses: nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@v3
         env:
           RESOURCE: .nais/nais.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
