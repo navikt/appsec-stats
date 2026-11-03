@@ -1,9 +1,9 @@
 [versions]
 kotlin = "2.4.21"
-ktor = "3.6.0"
-logback = "1.6.5"
+ktor = "3.6.1"
+logback = "1.6.6"
 logstash-encoder = "9.0"
-bigquery = "2.73.0"
+bigquery = "2.74.0"
 kotlinx-datetime = "0.8.0-0.6.x-compat"
 jwt = "4.6.2"
 bouncy-castle = "1.86"
