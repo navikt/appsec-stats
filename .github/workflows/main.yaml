@@ -18,11 +18,11 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-java@v6.0.1
+      - uses: actions/setup-java@v6.2.0
         with:
           java-version: 25
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@v6.4.0
+      - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Test & build
         run: ./gradlew test installDist
       - uses: nais/docker-build-push@main
@@ -32,8 +32,8 @@ jobs:
           push_image: true
           pull: true
       - name: Generate and submit dependency graph
-        uses: gradle/actions/dependency-submission@v6.4.0
-      - uses: nais/deploy/actions/deploy@v2
+        uses: gradle/actions/dependency-submission@v6.4.1
+      - uses: nais/deploy/actions/deploy@v3
         env:
           RESOURCE: .nais/nais.yaml,.nais/nais-vulns.yaml
           CLUSTER: prod-gcp
@@ -60,7 +60,7 @@ jobs:
           format: 'sarif'
           output: 'trivy.sarif'
           scanners: secret
-      - uses: github/codeql-action/upload-sarif@v4.38.3
+      - uses: github/codeql-action/upload-sarif@v4.39.3
         with:
           sarif_file: 'trivy.sarif'
           category: appsec-stats
