@@ -14,8 +14,6 @@ class IntegrationTest {
             val mockNaisApi = MockNaisApi()
             val mockTeamcatalog = MockTeamcatalog()
             val mockBqRepo = MockBigQueryRepos()
-            val mockBqTeam = MockBigQueryTeams()
-            val mockBqVuln = MockBigQueryVulnerabilities()
 
             val deps =
                 AppDependencies(
@@ -24,8 +22,6 @@ class IntegrationTest {
                     naisApi = mockNaisApi,
                     teamcatalog = mockTeamcatalog,
                     bqRepo = mockBqRepo,
-                    bqTeam = mockBqTeam,
-                    bqVulnerabilities = mockBqVuln,
                 )
 
             fetchRepositoryStats(deps)
@@ -36,7 +32,6 @@ class IntegrationTest {
             assertTrue(mockTeamcatalog.updateRecordsCalled)
             assertTrue(mockBqRepo.insertCalled)
             assertTrue(mockBqRepo.fetchDeploymentsCalled)
-            assertTrue(mockBqTeam.insertCalled)
 
             assertEquals(2, mockBqRepo.insertedRecords.size)
             mockBqRepo.insertedRecords.forEach { record ->
@@ -47,39 +42,6 @@ class IntegrationTest {
             }
             assertEquals("test-repo-one", mockBqRepo.insertedRecords[0].repositoryName)
             assertEquals("test-repo-two", mockBqRepo.insertedRecords[1].repositoryName)
-
-            assertEquals(2, mockBqTeam.insertedRecords.size)
-            assertTrue(mockBqTeam.insertedRecords.any { it.naisTeam == "team-alpha" })
-            assertTrue(mockBqTeam.insertedRecords.any { it.naisTeam == "team-beta" })
-        }
-
-    @Test
-    fun `fetchVulnerabilities produces correct bigquery output`() =
-        runBlocking {
-            val mockGithub = MockGitHub()
-            val mockNaisApi = MockNaisApi()
-            val mockTeamcatalog = MockTeamcatalog()
-            val mockBqRepo = MockBigQueryRepos()
-            val mockBqTeam = MockBigQueryTeams()
-            val mockBqVuln = MockBigQueryVulnerabilities()
-
-            val deps =
-                AppDependencies(
-                    github = mockGithub,
-                    githubHttpClient = HttpClient(),
-                    naisApi = mockNaisApi,
-                    teamcatalog = mockTeamcatalog,
-                    bqRepo = mockBqRepo,
-                    bqTeam = mockBqTeam,
-                    bqVulnerabilities = mockBqVuln,
-                )
-
-            fetchVulnerabilities(deps)
-
-            assertTrue(mockGithub.fetchRepositoryVulnerabilitiesCalled)
-            assertTrue(mockNaisApi.repoVulnerabilitiesCalled)
-            assertTrue(mockBqVuln.insertCalled)
-            assertTrue(mockBqVuln.insertedCount > 0)
         }
 
     @Test
@@ -89,8 +51,6 @@ class IntegrationTest {
             val mockNaisApi = MockNaisApi()
             val mockTeamcatalog = MockTeamcatalog()
             val mockBqRepo = MockBigQueryRepos()
-            val mockBqTeam = MockBigQueryTeams()
-            val mockBqVuln = MockBigQueryVulnerabilities()
 
             val deps =
                 AppDependencies(
@@ -99,8 +59,6 @@ class IntegrationTest {
                     naisApi = mockNaisApi,
                     teamcatalog = mockTeamcatalog,
                     bqRepo = mockBqRepo,
-                    bqTeam = mockBqTeam,
-                    bqVulnerabilities = mockBqVuln,
                 )
 
             fetchRepositoryStats(deps)

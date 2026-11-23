@@ -18,11 +18,8 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import no.nav.security.bigquery.BQNaisTeam
 import no.nav.security.bigquery.BQRepoStat
 import no.nav.security.bigquery.BigQueryRepos
-import no.nav.security.bigquery.BigQueryTeams
-import no.nav.security.bigquery.BigQueryVulnerabilities
 import no.nav.security.bigquery.BqDeploymentDto
 import no.nav.security.bigquery.toBigQueryFormat
 import org.slf4j.Logger
@@ -36,20 +33,12 @@ data class AppDependencies(
     val naisApi: NaisApi,
     val teamcatalog: Teamcatalog,
     val bqRepo: BigQueryRepos,
-    val bqTeam: BigQueryTeams,
-    val bqVulnerabilities: BigQueryVulnerabilities,
 )
 
-fun main(args: Array<String>): Unit =
+fun main(): Unit =
     runBlocking {
         try {
-            val deps = createProductionDependencies()
-
-            if (args.contains("--fetch-vulnerabilities")) {
-                fetchVulnerabilities(deps)
-            } else {
-                fetchRepositoryStats(deps)
-            }
+            fetchRepositoryStats(createProductionDependencies())
         } catch (e: Exception) {
             logger.error("Application crashed with error: ${e.message}", e)
             throw e
@@ -72,52 +61,7 @@ suspend fun createProductionDependencies(): AppDependencies {
         naisApi = NaisApi(httpClient = httpClient(), requiredFromEnv("NAIS_SERVICE_ACCOUNT_TOKEN_PATH")),
         teamcatalog = Teamcatalog(httpClient = httpClient(null)),
         bqRepo = BigQueryRepos(requiredFromEnv("GCP_TEAM_PROJECT_ID"), requiredFromEnv("NAIS_ANALYSE_PROJECT_ID")),
-        bqTeam = BigQueryTeams(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
-        bqVulnerabilities = BigQueryVulnerabilities(requiredFromEnv("GCP_TEAM_PROJECT_ID")),
     )
-}
-
-internal suspend fun fetchVulnerabilities(deps: AppDependencies) {
-    val github = deps.github
-    val naisApi = deps.naisApi
-    val bqVulnerabilities = deps.bqVulnerabilities
-
-    logger.info("Fetching vulnerability data from Nais API...")
-    val naisRepositories =
-        try {
-            naisApi.repoVulnerabilities()
-        } catch (e: Exception) {
-            logger.error("Failed to fetch vulnerabilities from Nais API: ${e.message}", e)
-            throw e
-        }
-    logger.info(
-        "Fetched vulnerability data for ${naisRepositories.size} repositories for a total of ${
-            naisRepositories.sumOf {
-                it.vulnerabilities.size
-            }
-        } vulnerabilities from Nais API",
-    )
-
-    logger.info("Fetching vulnerability data from GitHub...")
-    val githubVulns = github.fetchRepositoryVulnerabilities()
-    logger.info(
-        "Fetched vulnerabilities for ${githubVulns.size} repositories for a total of ${
-            githubVulns.sumOf {
-                it.vulnerabilities.size
-            }
-        } vulnerabilities",
-    )
-
-    logger.info("Combining vulnerabilities from both sources...")
-    val vulnerabilityCombiner = VulnerabilityCombiner()
-    val allVulnerabilities = vulnerabilityCombiner.combineVulnerabilities(naisRepositories, githubVulns)
-    logger.info("Combined vulnerabilities for ${allVulnerabilities.size} repositories")
-
-    bqVulnerabilities.insert(allVulnerabilities).fold(
-        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery vulnerabilities dataset") },
-        { ex -> throw ex },
-    )
-    logger.info("Vulnerability data fetched and inserted into BigQuery. Exiting application.")
 }
 
 internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
@@ -126,7 +70,6 @@ internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
     val naisApi = deps.naisApi
     val teamcatalog = deps.teamcatalog
     val bqRepo = deps.bqRepo
-    val bqTeam = deps.bqTeam
 
     logger.info("Looking for GitHub repos...")
     val githubRepositories = github.fetchOrgRepositories()
@@ -199,23 +142,6 @@ internal suspend fun fetchRepositoryStats(deps: AppDependencies) {
 
     bqRepo.insert(repositoriesWithOwners).fold(
         { rowCount -> logger.info("Inserted $rowCount rows into BigQuery repo dataset") },
-        { ex -> throw ex },
-    )
-
-    val bqNaisTeams =
-        naisTeams.map {
-            BQNaisTeam(
-                naisTeam = it.naisTeam,
-                slsaCoverage = it.slsaCoverage,
-                hasDeployedResources = it.hasDeployedResources,
-                hasGithubRepositories = it.hasGithubRepositories,
-            )
-        }
-    logger.info(
-        "Found ${bqNaisTeams.count { it.slsaCoverage == 0 && it.hasDeployedResources }} teams with 0 slsaCoverage and deployed resources",
-    )
-    bqTeam.insert(bqNaisTeams).fold(
-        { rowCount -> logger.info("Inserted $rowCount rows into BigQuery team dataset") },
         { ex -> throw ex },
     )
 }
