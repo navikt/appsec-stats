@@ -89,3 +89,4 @@ spec:
           labels:
             namespace: appsec
             severity: critical
+

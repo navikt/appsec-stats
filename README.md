@@ -11,8 +11,7 @@ Runs as a [Naisjob](https://doc.nais.io/explanation/workloads/job/) on a schedul
 
 ## Usage
 
-### Standard Operation
-By default, the application collects repository and team statistics:
+The application collects repository statistics:
 1. `./gradlew installDist` creates the distribution in `build/install/app/`
 2. You can run either with the shell script `bin/app` or directly with `java -cp`
 3. Arguments work the same way with both approaches
@@ -20,19 +19,6 @@ By default, the application collects repository and team statistics:
 ```bash
 java -cp "build/install/app/lib/*" no.nav.security.MainKt
 ```
-
-### Vulnerability Data Collection
-To collect detailed vulnerability data from both NAIS API and GitHub, use the `--fetch-vulnerabilities` argument:
-```bash
-java -cp "build/install/app/lib/*" no.nav.security.MainKt
-```
-
-**Note**: When run with `--fetch-vulnerabilities`, the application will:
-- Collect vulnerability data from both NAIS API and GitHub GraphQL API
-- Store the data in the `appsec.github_repo_vulnerability_stats` table
-- Exit after vulnerability collection (skips standard repository/team stats collection)
-
-This mode is designed for dedicated vulnerability scanning runs separate from regular statistics collection.
 
 ## Required Environment Variables
 * `GCP_TEAM_PROJECT_ID` - GCP project ID for BigQuery operations
@@ -43,51 +29,26 @@ This mode is designed for dedicated vulnerability scanning runs separate from re
 * `NAIS_API_TOKEN` - Token for NAIS API access
 
 ## Data Flow
-The application operates in two distinct modes with different data collection and processing flows:
-
-### Standard Mode (Default)
 1. **GitHub Collection**: Fetches all repositories from the `navikt` organization using GraphQL API, including repository metadata, vulnerability alerts, and admin team permissions
-2. **NAIS Team Data**: Retrieves team information, SLSA coverage metrics, repository ownership mappings, and deployed workload status
+2. **NAIS Team Data**: Retrieves repository ownership mappings for each team
 3. **Ownership Mapping**: Links repositories to teams by combining NAIS team repository lists with GitHub admin team permissions
 4. **Product Area Enrichment**: Queries Teamcatalog API to map teams to their product areas for organizational context
 5. **Deployment Integration**: 
    - Fetches deployment history from BigQuery `dev_rapid` tables
    - Queries NAIS API for current deployment status
    - Matches deployments to repositories by application name
-6. **BigQuery Storage**: Inserts processed data into `appsec.github_repo_stats` and `appsec.github_team_stats` tables
-
-### Vulnerability Mode (`--fetch-vulnerabilities`)
-1. **NAIS Vulnerability Scan**: Collects container image vulnerability data from NAIS workload scans
-2. **GitHub Security Alerts**: Fetches repository vulnerability alerts using GraphQL API with pagination support
-3. **Data Combination**: Merges vulnerabilities from both sources, handling deduplication and source attribution
-4. **Specialized Storage**: Stores combined vulnerability data in `appsec.github_repo_vulnerability_stats` table
-5. **Early Exit**: Skips standard repository/team statistics collection to focus on vulnerability data
-
-**Note**: Vulnerability mode runs independently and does not collect standard repository or team statistics.
+6. **BigQuery Storage**: Inserts processed data into the `appsec.github_repo_stats` table
 
 ## Data Model
-The application maintains three main data collections:
-
 ### Repository Stats (`appsec.github_repo_stats`)
 * **Repository information** - Name, archive status, last push date
 * **Vulnerability data** - Vulnerability count from GitHub, alerts status
 * **Ownership data** - Team ownership, product area association
 * **Deployment status** - Deployment dates, target environment
 
-### Team Stats (`appsec.github_team_stats`)
-* **Team information** - NAIS team identifier
-* **Security metrics** - SLSA coverage percentage from NAIS API
-* **Resource status** - Deployment status, GitHub repository ownership
-
-### Vulnerability Stats (`appsec.github_repo_vulnerability_stats`) *New*
-* **Source attribution** - NAIS or GitHub origin
-* **Repository mapping** - Links vulnerabilities to specific repositories
-* **Vulnerability details** - Multiple identifiers (CVE, vendor IDs), severity levels, suppression status
-* **Temporal data** - Collection timestamp for trend analysis
-
 ## Data Sources
 * **GitHub GraphQL API** - Repository information, vulnerability alerts, team permissions, and archival status
-* **NAIS API** - Team data, SLSA coverage, repository ownership, and container vulnerability scans
+* **NAIS API** - Repository ownership and deployment status
 * **Teamcatalog** - Product area information for teams
 * **BigQuery** - Deployment information from existing tables
 

@@ -21,8 +21,6 @@ class NaisTeamStatsTest {
 
     private data class TeamNodeBuilder(
         val slug: String,
-        val coverage: Double = 75.0,
-        val workloadTotalCount: Int = 3,
         val repositories: List<RepoNodeBuilder> = emptyList(),
         val repoHasNextPage: Boolean = false,
         val repoEndCursor: String? = null
@@ -30,14 +28,6 @@ class NaisTeamStatsTest {
         fun toJson(): String = """
             {
               "slug": "$slug",
-              "vulnerabilitySummary": {
-                "coverage": $coverage
-              },
-              "workloads": {
-                "pageInfo": {
-                  "totalCount": $workloadTotalCount
-                }
-              },
               "repositories": {
                 "nodes": [
                   ${repositories.joinToString(",\n") { it.toJson() }}
@@ -104,8 +94,6 @@ class NaisTeamStatsTest {
             teams = listOf(
                 TeamNodeBuilder(
                     slug = "team-alpha",
-                    coverage = 85.5,
-                    workloadTotalCount = 7,
                     repositories = listOf(
                         RepoNodeBuilder("navikt/service-a"),
                         RepoNodeBuilder("navikt/service-b")
@@ -120,9 +108,6 @@ class NaisTeamStatsTest {
         assertEquals(1, result.size)
         val team = result.first()
         assertEquals("team-alpha", team.naisTeam)
-        assertEquals(85, team.slsaCoverage)
-        assertTrue(team.hasDeployedResources)
-        assertTrue(team.hasGithubRepositories)
         assertEquals(2, team.repositories.size)
         assertTrue(team.repositories.contains("service-a"))
         assertTrue(team.repositories.contains("service-b"))
@@ -149,41 +134,6 @@ class NaisTeamStatsTest {
         assertTrue(team.repositories.contains("my-app"))
         assertTrue(team.repositories.contains("another-app"))
         assertFalse(team.repositories.any { it.contains("/") })
-    }
-
-    @Test
-    fun `should set hasDeployedResources false when workload count is zero`() = runBlocking {
-        val response = TeamStatsResponseBuilder(
-            teams = listOf(
-                TeamNodeBuilder(
-                    slug = "empty-team",
-                    workloadTotalCount = 0,
-                    repositories = emptyList()
-                )
-            )
-        ).toJson()
-
-        val naisApi = NaisApi(createMockHttpClient(listOf(response)))
-        val result = naisApi.teamStats()
-
-        val team = result.first()
-        assertFalse(team.hasDeployedResources)
-        assertFalse(team.hasGithubRepositories)
-        assertTrue(team.repositories.isEmpty())
-    }
-
-    @Test
-    fun `should truncate coverage to integer`() = runBlocking {
-        val response = TeamStatsResponseBuilder(
-            teams = listOf(
-                TeamNodeBuilder(slug = "team-coverage", coverage = 99.9)
-            )
-        ).toJson()
-
-        val naisApi = NaisApi(createMockHttpClient(listOf(response)))
-        val result = naisApi.teamStats()
-
-        assertEquals(99, result.first().slsaCoverage)
     }
 
     @Test
